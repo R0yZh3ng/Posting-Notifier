@@ -1,0 +1,7 @@
+.venv/
+__pycache__/
+*.pyc
+jobs.db
+jobs.db-journal
+config.local.yaml
+notifier.log

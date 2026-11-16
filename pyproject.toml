@@ -1,0 +1,20 @@
+[project]
+name = "posting-notifier"
+version = "0.1.0"
+description = "Continuously crawl company career pages and notify on new matching jobs."
+requires-python = ">=3.11"
+dependencies = [
+    "requests>=2.32",
+    "pyyaml>=6.0",
+    "beautifulsoup4>=4.12",
+]
+
+[project.scripts]
+notifier = "notifier.main:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["notifier"]

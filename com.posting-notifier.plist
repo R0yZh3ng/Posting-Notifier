@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key><string>com.posting-notifier</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/bokchoy/.local/bin/uv</string>
+        <string>run</string>
+        <string>notifier</string>
+        <string>run</string>
+    </array>
+    <key>WorkingDirectory</key><string>/Users/bokchoy/Posting-Notifier</string>
+    <key>RunAtLoad</key><true/>
+    <key>KeepAlive</key><true/>
+    <key>StandardOutPath</key><string>/Users/bokchoy/Posting-Notifier/notifier.log</string>
+    <key>StandardErrorPath</key><string>/Users/bokchoy/Posting-Notifier/notifier.log</string>
+</dict>
+</plist>

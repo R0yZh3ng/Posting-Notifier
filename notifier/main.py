@@ -1,0 +1,105 @@
+from __future__ import annotations
+
+import argparse
+import os
+import sys
+import time
+from datetime import datetime
+
+import yaml
+
+from . import notify, report, sources
+from .matcher import Matcher
+from .store import Store
+
+
+def load_config(path: str | None) -> dict:
+    if path is None:
+        path = "config.local.yaml" if os.path.exists("config.local.yaml") else "config.yaml"
+    with open(path) as f:
+        return yaml.safe_load(f)
+
+
+def run_once(cfg: dict, store: Store, quiet_first_run: bool) -> int:
+    """Crawl every company once. Returns number of new matching jobs."""
+    matcher = Matcher(cfg.get("criteria", {}))
+    baseline = quiet_first_run and store.count() == 0
+    new_matches = 0
+    for c in cfg.get("companies", []):
+        try:
+            jobs = sources.fetch(c)
+        except Exception as e:  # one bad company must not stop the crawl
+            print(f"  ! {c.get('name', '?')}: {e}")
+            continue
+        new_here = 0
+        for job in jobs:
+            matched = matcher.matches(job)
+            if store.upsert(job, matched) and matched:
+                new_here += 1
+                if baseline:
+                    continue
+                print(f"  + {job.company}: {job.title} [{job.location}] {job.url}")
+                notify.send(cfg.get("notify", {}), job)
+        store.commit()
+        print(f"  {c['name']}: {len(jobs)} postings, {new_here} new matches")
+        new_matches += new_here
+    report.write_all(cfg.get("output", {}), store.matched_jobs())
+    if baseline:
+        print(f"First run: recorded {new_matches} existing matches without notifying. New ones will notify from now on.")
+    return new_matches
+
+
+def cmd_list(cfg: dict, store: Store) -> None:
+    rows = store.matched_jobs()
+    for r in rows:
+        loc = f" ({r['location']})" if r["location"] else ""
+        print(f"{r['first_seen'][:10]}  {r['company']:<18} {r['title']}{loc}\n{'':30}{r['url']}")
+    print(f"\n{len(rows)} matching jobs")
+
+
+def main(argv: list[str] | None = None) -> None:
+    p = argparse.ArgumentParser(prog="notifier", description="Watch company job boards for new matching postings.")
+    p.add_argument("-c", "--config", help="config file (default: config.local.yaml, else config.yaml)")
+    p.add_argument("--db", default="jobs.db", help="sqlite database path")
+    sub = p.add_subparsers(dest="cmd", required=True)
+    sub.add_parser("once", help="crawl every company one time")
+    r = sub.add_parser("run", help="crawl continuously")
+    r.add_argument("--interval", type=float, help="minutes between crawls (overrides config)")
+    sub.add_parser("list", help="print all matching jobs seen so far")
+    sub.add_parser("rebuild", help="regenerate jobs.md / jobs.html from the database")
+    for s in sub.choices.values():
+        s.add_argument("--notify-first-run", action="store_true",
+                       help="on an empty database, notify for every existing match instead of staying quiet")
+    args = p.parse_args(argv)
+
+    cfg = load_config(args.config)
+    store = Store(args.db)
+    quiet = not args.notify_first_run
+
+    if args.cmd == "list":
+        cmd_list(cfg, store)
+    elif args.cmd == "rebuild":
+        report.write_all(cfg.get("output", {}), store.matched_jobs())
+        print("Rebuilt report files.")
+    elif args.cmd == "once":
+        n = run_once(cfg, store, quiet)
+        print(f"Done: {n} new matching job(s).")
+    elif args.cmd == "run":
+        interval = args.interval or cfg.get("poll_interval_minutes", 30)
+        print(f"Polling every {interval} min. Ctrl-C to stop.")
+        while True:
+            print(f"\n[{datetime.now():%Y-%m-%d %H:%M:%S}] crawling…")
+            try:
+                n = run_once(cfg, store, quiet)
+                print(f"{n} new matching job(s).")
+            except Exception as e:
+                print(f"crawl failed: {e}", file=sys.stderr)
+            try:
+                time.sleep(interval * 60)
+            except KeyboardInterrupt:
+                print("\nStopped.")
+                return
+
+
+if __name__ == "__main__":
+    main()

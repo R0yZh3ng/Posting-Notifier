@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import concurrent.futures as cf
 import os
+import re
 import sys
 import time
 from datetime import datetime
@@ -56,7 +57,7 @@ def run_once(cfg: dict, store: Store, quiet_first_run: bool, workers: int = 8) -
             else:
                 print(f"  {c['name']}: {len(jobs)} postings, {new_here} new matches")
             new_matches += new_here
-    report.write_all(cfg.get("output", {}), store.matched_jobs())
+    report.write_all(cfg.get("output", {}), store)
     if baselined:
         n = sum(k for _, k in baselined)
         print(f"First crawl of {len(baselined)} new compan{'y' if len(baselined)==1 else 'ies'}: "
@@ -71,11 +72,22 @@ def summary(new: int, store: Store, cfg: dict) -> str:
             f"full list in {md} or `notifier list`.")
 
 
-def cmd_list(cfg: dict, store: Store) -> None:
-    rows = store.matched_jobs()
+def parse_since(text: str | None) -> float | None:
+    """'24h', '3d', '90m' -> hours."""
+    if not text:
+        return None
+    m = re.fullmatch(r"(\d+(?:\.\d+)?)\s*([hdm]?)", text.strip().lower())
+    if not m:
+        raise SystemExit(f"bad --since {text!r}; use e.g. 24h or 3d")
+    n, unit = float(m.group(1)), m.group(2) or "h"
+    return n * {"h": 1, "d": 24, "m": 1 / 60}[unit]
+
+
+def cmd_list(cfg: dict, store: Store, since: str | None = None) -> None:
+    rows = store.matched_jobs(since_hours=parse_since(since))
     for r in rows:
         loc = f" ({r['location']})" if r["location"] else ""
-        print(f"{r['first_seen'][:10]}  {r['company']:<18} {r['title']}{loc}\n{'':30}{r['url']}")
+        print(f"{r['posted'][:10]}  {r['company']:<18} {r['title']}{loc}\n{'':30}{r['url']}")
     print(f"\n{len(rows)} matching jobs")
 
 
@@ -87,7 +99,8 @@ def main(argv: list[str] | None = None) -> None:
     sub.add_parser("once", help="crawl every company one time")
     r = sub.add_parser("run", help="crawl continuously")
     r.add_argument("--interval", type=float, help="minutes between crawls (overrides config)")
-    sub.add_parser("list", help="print all matching jobs seen so far")
+    ls = sub.add_parser("list", help="print matching jobs")
+    ls.add_argument("--since", help="only jobs posted within this window, e.g. 24h or 3d")
     sub.add_parser("rebuild", help="regenerate jobs.md / jobs.html from the database")
     for s in sub.choices.values():
         s.add_argument("--notify-first-run", action="store_true",
@@ -99,9 +112,9 @@ def main(argv: list[str] | None = None) -> None:
     quiet = not args.notify_first_run
 
     if args.cmd == "list":
-        cmd_list(cfg, store)
+        cmd_list(cfg, store, args.since)
     elif args.cmd == "rebuild":
-        report.write_all(cfg.get("output", {}), store.matched_jobs())
+        report.write_all(cfg.get("output", {}), store)
         print("Rebuilt report files.")
     elif args.cmd == "once":
         n = run_once(cfg, store, quiet)

@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import re
 import time
+from datetime import datetime, timedelta, timezone
 from urllib.parse import urljoin
 
 import requests
@@ -14,6 +15,40 @@ UA = "posting-notifier/0.1 (+https://github.com/)"
 TIMEOUT = 20
 
 
+def _iso(value) -> str | None:
+    """Normalise an ISO string or epoch-milliseconds into ISO 8601 UTC."""
+    if not value:
+        return None
+    try:
+        if isinstance(value, (int, float)):
+            dt = datetime.fromtimestamp(value / 1000, tz=timezone.utc)
+        else:
+            dt = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=timezone.utc)
+        return dt.astimezone(timezone.utc).isoformat(timespec="seconds")
+    except (ValueError, OverflowError):
+        return None
+
+
+def _workday_posted(text: str | None) -> str | None:
+    """'Posted Today' / 'Posted Yesterday' / 'Posted 5 Days Ago' / 'Posted 30+ Days Ago' -> ISO date."""
+    if not text:
+        return None
+    t = text.lower()
+    now = datetime.now(timezone.utc)
+    if "today" in t:
+        days = 0
+    elif "yesterday" in t:
+        days = 1
+    else:
+        m = re.search(r"(\d+)\+?\s*day", t)
+        if not m:
+            return None
+        days = int(m.group(1))
+    return (now - timedelta(days=days)).isoformat(timespec="seconds")
+
+
 def _get(url: str, **kw) -> requests.Response:
     r = requests.get(url, headers={"User-Agent": UA, "Accept": "application/json, text/html"}, timeout=TIMEOUT, **kw)
     r.raise_for_status()
@@ -23,7 +58,8 @@ def _get(url: str, **kw) -> requests.Response:
 def greenhouse(c: dict) -> list[Job]:
     data = _get(f"https://boards-api.greenhouse.io/v1/boards/{c['slug']}/jobs?content=false").json()
     return [
-        Job(c["name"], j["title"], j["absolute_url"], (j.get("location") or {}).get("name", ""))
+        Job(c["name"], j["title"], j["absolute_url"], (j.get("location") or {}).get("name", ""),
+            _iso(j.get("first_published") or j.get("updated_at")))
         for j in data.get("jobs", [])
     ]
 
@@ -31,7 +67,8 @@ def greenhouse(c: dict) -> list[Job]:
 def lever(c: dict) -> list[Job]:
     data = _get(f"https://api.lever.co/v0/postings/{c['slug']}?mode=json").json()
     return [
-        Job(c["name"], j["text"], j["hostedUrl"], (j.get("categories") or {}).get("location", ""))
+        Job(c["name"], j["text"], j["hostedUrl"], (j.get("categories") or {}).get("location", ""),
+            _iso(j.get("createdAt")))
         for j in data
     ]
 
@@ -41,7 +78,7 @@ def ashby(c: dict) -> list[Job]:
     jobs = []
     for j in data.get("jobs", []):
         url = j.get("jobUrl") or f"https://jobs.ashbyhq.com/{c['slug']}/{j['id']}"
-        jobs.append(Job(c["name"], j["title"], url, j.get("location", "")))
+        jobs.append(Job(c["name"], j["title"], url, j.get("location", ""), _iso(j.get("publishedAt"))))
     return jobs
 
 
@@ -58,7 +95,8 @@ def workable(c: dict) -> list[Job]:
         for j in data.get("results", []):
             loc = j.get("location") or {}
             loc_s = ", ".join(filter(None, [loc.get("city"), loc.get("country")]))
-            jobs.append(Job(c["name"], j["title"], f"https://apply.workable.com/{c['slug']}/j/{j['shortcode']}/", loc_s))
+            jobs.append(Job(c["name"], j["title"], f"https://apply.workable.com/{c['slug']}/j/{j['shortcode']}/", loc_s,
+                            _iso(j.get("published"))))
         token = data.get("nextPage")
         if not token:
             break
@@ -74,7 +112,7 @@ def smartrecruiters(c: dict) -> list[Job]:
             loc = j.get("location") or {}
             loc_s = ", ".join(filter(None, [loc.get("city"), loc.get("country")]))
             url = f"https://jobs.smartrecruiters.com/{c['slug']}/{j['id']}"
-            jobs.append(Job(c["name"], j["name"], url, loc_s))
+            jobs.append(Job(c["name"], j["name"], url, loc_s, _iso(j.get("releasedDate"))))
         offset += len(content)
         if not content or offset >= data.get("totalFound", 0):
             break
@@ -105,7 +143,8 @@ def workday(c: dict) -> list[Job]:
         data = r.json()
         for j in data.get("jobPostings", []):
             path = j.get("externalPath", "")
-            jobs.append(Job(c["name"], j.get("title", ""), f"{base}/{site}{path}", j.get("locationsText", "")))
+            jobs.append(Job(c["name"], j.get("title", ""), f"{base}/{site}{path}", j.get("locationsText", ""),
+                            _workday_posted(j.get("postedOn"))))
         offset += limit
         if offset >= data.get("total", 0) or not data.get("jobPostings"):
             break

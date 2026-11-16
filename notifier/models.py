@@ -10,6 +10,7 @@ class Job:
     title: str
     url: str
     location: str = ""
+    posted_at: str | None = None  # ISO 8601 UTC when the board reports it, else None
 
     @property
     def id(self) -> str:

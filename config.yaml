@@ -85,8 +85,17 @@ notify:
 
 # Output files
 output:
-  markdown: jobs.md
+  markdown: jobs.md            # every current match
   html: jobs.html
+  recent:                      # extra lists limited to recently posted jobs
+    - hours: 24
+      label: Posted in the last 24 hours
+      markdown: jobs-24h.md
+      html: jobs-24h.html
+    - hours: 72
+      label: Posted in the last 3 days
+      markdown: jobs-3d.md
+      html: jobs-3d.html
 
 # Companies to watch (all verified live as of 2026-11-16).
 #   type: greenhouse | lever | ashby | workable | smartrecruiters | workday | html

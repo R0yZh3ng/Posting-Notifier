@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import sqlite3
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from .models import Job
 
@@ -28,6 +28,9 @@ class Store:
         self.conn = sqlite3.connect(path)
         self.conn.row_factory = sqlite3.Row
         self.conn.executescript(SCHEMA)
+        cols = {r[1] for r in self.conn.execute("PRAGMA table_info(jobs)")}
+        if "posted_at" not in cols:
+            self.conn.execute("ALTER TABLE jobs ADD COLUMN posted_at TEXT")
 
     @staticmethod
     def _now() -> str:
@@ -37,13 +40,16 @@ class Store:
         """Insert the job if unseen. Returns True when it is new."""
         now = self._now()
         cur = self.conn.execute(
-            "INSERT OR IGNORE INTO jobs (id, company, title, url, location, matched, first_seen, last_seen)"
-            " VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-            (job.id, job.company, job.title, job.url, job.location, int(matched), now, now),
+            "INSERT OR IGNORE INTO jobs (id, company, title, url, location, matched, first_seen, last_seen, posted_at)"
+            " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (job.id, job.company, job.title, job.url, job.location, int(matched), now, now, job.posted_at),
         )
         is_new = cur.rowcount == 1
         if not is_new:
-            self.conn.execute("UPDATE jobs SET last_seen = ?, matched = ? WHERE id = ?", (now, int(matched), job.id))
+            self.conn.execute(
+                "UPDATE jobs SET last_seen = ?, matched = ?, posted_at = COALESCE(?, posted_at) WHERE id = ?",
+                (now, int(matched), job.posted_at, job.id),
+            )
         return is_new
 
     def first_crawl(self, company: str) -> bool:
@@ -56,10 +62,16 @@ class Store:
     def commit(self) -> None:
         self.conn.commit()
 
-    def matched_jobs(self) -> list[sqlite3.Row]:
-        return self.conn.execute(
-            "SELECT * FROM jobs WHERE matched = 1 ORDER BY first_seen DESC, company, title"
-        ).fetchall()
+    def matched_jobs(self, since_hours: float | None = None) -> list[sqlite3.Row]:
+        """Matching jobs, newest first. `since_hours` keeps only those posted within that window,
+        using the board's posting date when known and otherwise when we first saw it."""
+        sql = "SELECT *, COALESCE(posted_at, first_seen) AS posted FROM jobs WHERE matched = 1"
+        args: tuple = ()
+        if since_hours is not None:
+            cutoff = (datetime.now(timezone.utc) - timedelta(hours=since_hours)).isoformat(timespec="seconds")
+            sql += " AND COALESCE(posted_at, first_seen) >= ?"
+            args = (cutoff,)
+        return self.conn.execute(sql + " ORDER BY posted DESC, company, title", args).fetchall()
 
     def count(self) -> int:
         return self.conn.execute("SELECT COUNT(*) FROM jobs").fetchone()[0]

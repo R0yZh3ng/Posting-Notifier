@@ -5,24 +5,24 @@ from datetime import datetime, timezone
 from itertools import groupby
 
 
-def write_markdown(path: str, rows) -> None:
+def write_markdown(path: str, rows, label: str = "Matching jobs") -> None:
     now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
-    lines = [f"# Matching jobs ({len(rows)})", "", f"_Updated {now}. Newest first._", ""]
+    lines = [f"# {label} ({len(rows)})", "", f"_Updated {now}. Newest first, by posting date._", ""]
     for r in rows:
         loc = f" · {r['location']}" if r["location"] else ""
-        lines.append(f"- {r['first_seen'][:10]} **{r['company']}** — [{r['title']}]({r['url']}){loc}")
+        lines.append(f"- {r['posted'][:10]} **{r['company']}** — [{r['title']}]({r['url']}){loc}")
     with open(path, "w") as f:
         f.write("\n".join(lines) + "\n")
 
 
-def write_html(path: str, rows) -> None:
+def write_html(path: str, rows, label: str = "Matching jobs") -> None:
     now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
     e = html.escape
     parts = [
         "<!doctype html><meta charset=utf-8><title>Matching jobs</title>",
         "<style>body{font:15px/1.5 system-ui;max-width:900px;margin:2rem auto;padding:0 1rem}"
         "h2{margin-top:2rem}li{margin:.3rem 0}.m{color:#777;font-size:.85em}</style>",
-        f"<h1>Matching jobs ({len(rows)})</h1><p class=m>Updated {now}</p>",
+        f"<h1>{e(label)} ({len(rows)})</h1><p class=m>Updated {now}</p>",
     ]
     by_company = sorted(rows, key=lambda r: r["company"].lower())
     for company, group in groupby(by_company, key=lambda r: r["company"]):
@@ -31,15 +31,24 @@ def write_html(path: str, rows) -> None:
             loc = f" <span class=m>{e(r['location'])}</span>" if r["location"] else ""
             parts.append(
                 f"<li><a href=\"{e(r['url'])}\">{e(r['title'])}</a>{loc}"
-                f" <span class=m>· seen {e(r['first_seen'][:10])}</span></li>"
+                f" <span class=m>· posted {e(r['posted'][:10])}</span></li>"
             )
         parts.append("</ul>")
     with open(path, "w") as f:
         f.write("\n".join(parts) + "\n")
 
 
-def write_all(output_cfg: dict, rows) -> None:
+def write_all(output_cfg: dict, store) -> None:
+    rows = store.matched_jobs()
     if output_cfg.get("markdown"):
         write_markdown(output_cfg["markdown"], rows)
     if output_cfg.get("html"):
         write_html(output_cfg["html"], rows)
+    for w in output_cfg.get("recent") or []:
+        hours = float(w["hours"])
+        label = w.get("label") or f"Posted in the last {int(hours)} hours"
+        recent = store.matched_jobs(since_hours=hours)
+        if w.get("markdown"):
+            write_markdown(w["markdown"], recent, label)
+        if w.get("html"):
+            write_html(w["html"], recent, label)

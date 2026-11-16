@@ -13,12 +13,15 @@ def _compile(pattern: str) -> re.Pattern:
 class Matcher:
     def __init__(self, criteria: dict):
         self.include = [_compile(p) for p in criteria.get("include", [])]
+        self.require = [_compile(p) for p in criteria.get("require") or []]
         self.exclude = [_compile(p) for p in criteria.get("exclude", [])]
         self.locations = [_compile(p) for p in criteria.get("locations") or []]
 
     def matches(self, job: Job) -> bool:
         title = job.title
         if self.include and not any(p.search(title) for p in self.include):
+            return False
+        if self.require and not any(p.search(title) for p in self.require):
             return False
         if any(p.search(title) for p in self.exclude):
             return False

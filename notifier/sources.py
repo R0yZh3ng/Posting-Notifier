@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import re
+import time
 from urllib.parse import urljoin
 
 import requests
@@ -80,6 +81,37 @@ def smartrecruiters(c: dict) -> list[Job]:
     return jobs
 
 
+def workday(c: dict) -> list[Job]:
+    """Workday career sites. `url` is the public site root, e.g.
+    https://nvidia.wd5.myworkdayjobs.com/NVIDIAExternalCareerSite"""
+    m = re.match(r"https://([^.]+)\.(wd\d+)\.myworkdayjobs\.com/(?:[a-z]{2}-[A-Za-z]{2}/)?([^/?#]+)", c["url"])
+    if not m:
+        raise ValueError(f"unrecognised workday url {c['url']!r}")
+    tenant, wd, site = m.groups()
+    base = f"https://{tenant}.{wd}.myworkdayjobs.com"
+    api = f"{base}/wday/cxs/{tenant}/{site}/jobs"
+    jobs, offset, limit = [], 0, 20
+    sess = requests.Session()
+    sess.headers.update({"User-Agent": UA, "Accept": "application/json", "Content-Type": "application/json"})
+    sess.get(f"{base}/{site}", timeout=TIMEOUT)  # sets cookies some tenants require
+    while True:
+        body = {"appliedFacets": {}, "limit": limit, "offset": offset, "searchText": c.get("search", "")}
+        for attempt in range(4):  # Workday tenants share rate limits; back off on 429
+            r = sess.post(api, json=body, timeout=TIMEOUT)
+            if r.status_code != 429:
+                break
+            time.sleep(5 * 2 ** attempt)
+        r.raise_for_status()
+        data = r.json()
+        for j in data.get("jobPostings", []):
+            path = j.get("externalPath", "")
+            jobs.append(Job(c["name"], j.get("title", ""), f"{base}/{site}{path}", j.get("locationsText", "")))
+        offset += limit
+        if offset >= data.get("total", 0) or not data.get("jobPostings"):
+            break
+    return jobs
+
+
 def html(c: dict) -> list[Job]:
     """Generic scraper: every <a> matching `selector` (default a[href]) whose href matches `pattern`."""
     page = _get(c["url"]).text
@@ -107,6 +139,7 @@ FETCHERS = {
     "ashby": ashby,
     "workable": workable,
     "smartrecruiters": smartrecruiters,
+    "workday": workday,
     "html": html,
 }
 

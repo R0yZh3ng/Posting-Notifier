@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import concurrent.futures as cf
 import os
 import sys
 import time
@@ -20,32 +21,46 @@ def load_config(path: str | None) -> dict:
         return yaml.safe_load(f)
 
 
-def run_once(cfg: dict, store: Store, quiet_first_run: bool) -> int:
+def run_once(cfg: dict, store: Store, quiet_first_run: bool, workers: int = 8) -> int:
     """Crawl every company once. Returns number of new matching jobs."""
     matcher = Matcher(cfg.get("criteria", {}))
-    baseline = quiet_first_run and store.count() == 0
+    companies = cfg.get("companies", [])
     new_matches = 0
-    for c in cfg.get("companies", []):
+    baselined = []
+
+    def fetch(c):
         try:
-            jobs = sources.fetch(c)
+            return c, sources.fetch(c), None
         except Exception as e:  # one bad company must not stop the crawl
-            print(f"  ! {c.get('name', '?')}: {e}")
-            continue
-        new_here = 0
-        for job in jobs:
-            matched = matcher.matches(job)
-            if store.upsert(job, matched) and matched:
-                new_here += 1
-                if baseline:
-                    continue
-                print(f"  + {job.company}: {job.title} [{job.location}] {job.url}")
-                notify.send(cfg.get("notify", {}), job)
-        store.commit()
-        print(f"  {c['name']}: {len(jobs)} postings, {new_here} new matches")
-        new_matches += new_here
+            return c, [], e
+
+    with cf.ThreadPoolExecutor(max_workers=workers) as ex:
+        for c, jobs, err in ex.map(fetch, companies):
+            if err is not None:
+                print(f"  ! {c.get('name', '?')}: {err}")
+                continue
+            # A company's very first crawl is recorded silently so adding it doesn't flood you.
+            quiet = quiet_first_run and store.first_crawl(c["name"])
+            new_here = 0
+            for job in jobs:
+                matched = matcher.matches(job)
+                if store.upsert(job, matched) and matched:
+                    new_here += 1
+                    if quiet:
+                        continue
+                    print(f"  + {job.company}: {job.title} [{job.location}] {job.url}")
+                    notify.send(cfg.get("notify", {}), job)
+            store.commit()
+            if quiet:
+                baselined.append((c["name"], new_here))
+            else:
+                print(f"  {c['name']}: {len(jobs)} postings, {new_here} new matches")
+            new_matches += new_here
     report.write_all(cfg.get("output", {}), store.matched_jobs())
-    if baseline:
-        print(f"First run: recorded {new_matches} existing matches without notifying. New ones will notify from now on.")
+    if baselined:
+        n = sum(k for _, k in baselined)
+        print(f"First crawl of {len(baselined)} new compan{'y' if len(baselined)==1 else 'ies'}: "
+              f"recorded {n} existing matches without notifying.")
     return new_matches
 
 
@@ -69,7 +84,7 @@ def main(argv: list[str] | None = None) -> None:
     sub.add_parser("rebuild", help="regenerate jobs.md / jobs.html from the database")
     for s in sub.choices.values():
         s.add_argument("--notify-first-run", action="store_true",
-                       help="on an empty database, notify for every existing match instead of staying quiet")
+                       help="notify for every existing match on a company's first crawl instead of staying quiet")
     args = p.parse_args(argv)
 
     cfg = load_config(args.config)

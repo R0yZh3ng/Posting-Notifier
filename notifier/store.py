@@ -16,6 +16,10 @@ CREATE TABLE IF NOT EXISTS jobs (
     first_seen TEXT NOT NULL,
     last_seen  TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS companies (
+    name       TEXT PRIMARY KEY,
+    first_crawl TEXT NOT NULL
+);
 """
 
 
@@ -41,6 +45,13 @@ class Store:
         if not is_new:
             self.conn.execute("UPDATE jobs SET last_seen = ?, matched = ? WHERE id = ?", (now, int(matched), job.id))
         return is_new
+
+    def first_crawl(self, company: str) -> bool:
+        """Record that `company` has been crawled. Returns True the first time."""
+        cur = self.conn.execute(
+            "INSERT OR IGNORE INTO companies (name, first_crawl) VALUES (?, ?)", (company, self._now())
+        )
+        return cur.rowcount == 1
 
     def commit(self) -> None:
         self.conn.commit()

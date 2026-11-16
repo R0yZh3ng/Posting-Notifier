@@ -11,12 +11,17 @@ uv sync
 
 Edit `config.yaml`:
 
-- `criteria.include` / `exclude`: keywords (regex, case-insensitive, whole-word) matched against the job title.
+- `criteria.include`: a title must contain one of these (e.g. intern, new grad, summer analyst).
+- `criteria.require`: and one of these too (e.g. software, quant, engineer). Leave empty to skip.
+- `criteria.exclude`: and none of these (marketing, mechanical, senior, ...).
+  All three are case-insensitive regexes matched on whole words.
 - `criteria.locations`: optional keywords matched against title + location.
-- `companies`: boards to watch. Supported `type`s: `greenhouse`, `lever`, `ashby`, `workable`,
-  `smartrecruiters`, and `html` (generic scraper with a CSS `selector` + href `pattern`).
+- `companies`: boards to watch (400+ preloaded, all verified live). Supported `type`s:
+  `greenhouse`, `lever`, `ashby`, `workable`, `smartrecruiters`, `workday`, and `html`
+  (generic scraper with a CSS `selector` + href `pattern`).
   The `slug` is the identifier in the company's careers URL, e.g. `boards.greenhouse.io/<slug>`,
-  `jobs.lever.co/<slug>`, `jobs.ashbyhq.com/<slug>`.
+  `jobs.lever.co/<slug>`, `jobs.ashbyhq.com/<slug>`. Workday boards take the public careers `url`
+  plus an optional `search` term, since those boards have thousands of postings.
 - `notify.desktop`: macOS notification. `notify.webhook`: Slack or Discord incoming webhook URL.
 
 Prefer `config.local.yaml` (gitignored) if you put a webhook URL in there; it overrides `config.yaml`.
@@ -31,8 +36,9 @@ uv run notifier list          # print every matching job seen so far
 uv run notifier rebuild       # regenerate jobs.md / jobs.html from the database
 ```
 
-The first crawl on an empty database records existing matches silently so you are not
-flooded with hundreds of alerts. Pass `--notify-first-run` to change that.
+The first crawl of any company records its existing matches silently, so adding companies
+never floods you with alerts. Pass `--notify-first-run` to change that. A full crawl of all
+companies takes about 3 minutes.
 
 Outputs: `jobs.md` (newest first) and `jobs.html` (grouped by company), both regenerated
 after every crawl. State lives in `jobs.db` (SQLite); delete it to start fresh.

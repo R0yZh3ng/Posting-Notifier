@@ -4,70 +4,1386 @@
 
 poll_interval_minutes: 30
 
-# A job matches when its title contains ANY of `include` (case-insensitive, regex ok)
-# and NONE of `exclude`. `locations` (optional) must match title or location field.
+# A job matches when its title:
+#   - contains ANY of `include`           (e.g. it's an intern role)
+#   - AND contains ANY of `require`       (e.g. it's a software / quant role) -- leave empty to skip
+#   - AND contains NONE of `exclude`
+#   - AND, if `locations` is non-empty, title+location contains ANY of them.
+# Patterns are case-insensitive regexes matched on whole words.
 criteria:
   include:
-    - "software engineer"
-    - "swe"
-    - "backend"
-    - "full[- ]?stack"
-    - "new grad"
     - "intern"
+    - "internship"
+    - "co-?op"
+    - "new grad(uate)?"
+    - "early career"
+    - "summer analyst"
+    - "campus"
+    - "university"
+    - "summer 20\\d\\d"
+    - "winter 20\\d\\d"
+    - "fall 20\\d\\d"
+    - "spring 20\\d\\d"
+  require:
+    - "software"
+    - "swe"
+    - "sde"
+    - "engineer(ing)?"
+    - "developer"
+    - "quant(itative)?"
+    - "trad(er|ing)"
+    - "research(er)?"
+    - "machine learning"
+    - "ml"
+    - "ai"
+    - "data"
+    - "infrastructure"
+    - "platform"
+    - "backend"
+    - "front ?end"
+    - "full[- ]?stack"
+    - "systems"
+    - "security"
+    - "compiler"
+    - "kernel"
+    - "robotics"
+    - "autonomy"
+    - "perception"
+    - "technology"
+    - "technical"
+    - "programmer"
+    - "computer science"
+    - "strats?"
   exclude:
-    - "senior"
-    - "staff"
-    - "principal"
-    - "manager"
-    - "director"
+    - "marketing"
+    - "sales"
+    - "recruit(er|ing)"
+    - "people"
+    - "hr"
+    - "legal"
+    - "accountant|accounting"
+    - "account (executive|manager)"
+    - "mechanical"
+    - "electrical"
+    - "civil"
+    - "manufacturing"
+    - "supply chain"
+    - "propulsion|process|industrial(ization)?|structural|thermal|materials|chemical|biomedical|quality"
+    - "hardware|pcb|rf|analog|asic|silicon|physical design|layout|packaging|test engineer"
+    - "communications"
+    - "customer success"
+    - "support"
+    - "nurse|clinical|pharmac"
+    - "mba"
+    - "senior|staff|principal|director|manager|lead|head of"
   locations: []          # e.g. ["remote", "san francisco", "new york", "toronto"]
 
 # Where to send notifications. All enabled channels fire for each new match.
 notify:
   desktop: true          # macOS notification via osascript
-  webhook: ""            # Slack / Discord incoming webhook URL (posts {"text": ..., "content": ...})
+  webhook: ""            # Slack / Discord incoming webhook URL
 
 # Output files
 output:
   markdown: jobs.md
   html: jobs.html
 
-# Companies to watch.
-#   type: greenhouse | lever | ashby | workable | smartrecruiters | html
+# Companies to watch (all verified live as of 2026-11-16).
+#   type: greenhouse | lever | ashby | workable | smartrecruiters | workday | html
 #   slug: the company's board identifier on that ATS (visible in its careers URL)
-#   For `html`, give `url` plus a CSS `selector` for <a> job links (default "a[href]")
-#   and optionally `pattern`, a regex the href must match.
+#   workday: give the public careers `url`; `search` narrows the crawl (these boards are huge)
+#   html:    give `url` plus a CSS `selector` for <a> job links and optionally a href `pattern`
 companies:
-  - name: Stripe
+  - name: "1Password"
+    type: ashby
+    slug: 1password
+  - name: "3M"
+    type: workday
+    url: https://3m.wd1.myworkdayjobs.com/Search
+    search: intern
+  - name: "3Red"
     type: greenhouse
-    slug: stripe
-  - name: Cloudflare
+    slug: 3redpartners
+  - name: "Abbott"
+    type: workday
+    url: https://abbott.wd5.myworkdayjobs.com/abbottcareers
+    search: intern
+  - name: "Abnormal Security"
     type: greenhouse
-    slug: cloudflare
-  - name: Figma
+    slug: abnormalsecurity
+  - name: "Abridge"
+    type: ashby
+    slug: abridge
+  - name: "Adobe"
+    type: workday
+    url: https://adobe.wd5.myworkdayjobs.com/external_experienced
+    search: intern
+  - name: "Adyen"
     type: greenhouse
-    slug: figma
-  - name: Anthropic
+    slug: adyen
+  - name: "Affirm"
+    type: greenhouse
+    slug: affirm
+  - name: "Agility Robotics"
+    type: greenhouse
+    slug: agilityrobotics
+  - name: "Airbnb"
+    type: greenhouse
+    slug: airbnb
+  - name: "Airbyte"
+    type: ashby
+    slug: airbyte
+  - name: "Airtable"
+    type: greenhouse
+    slug: airtable
+  - name: "Airwallex"
+    type: ashby
+    slug: airwallex
+  - name: "Akuity"
+    type: greenhouse
+    slug: akuity
+  - name: "Akuna Capital"
+    type: greenhouse
+    slug: akunacapital
+  - name: "Alchemy"
+    type: ashby
+    slug: alchemy
+  - name: "Algolia"
+    type: greenhouse
+    slug: algolia
+  - name: "Allstate"
+    type: workday
+    url: https://allstate.wd5.myworkdayjobs.com/allstate_careers
+    search: intern
+  - name: "Amplitude"
+    type: ashby
+    slug: amplitude
+  - name: "Analog Devices"
+    type: workday
+    url: https://analogdevices.wd1.myworkdayjobs.com/External
+    search: intern
+  - name: "Anchorage"
+    type: lever
+    slug: anchorage
+  - name: "Andela"
+    type: ashby
+    slug: andela
+  - name: "Anthem"
+    type: workday
+    url: https://elevancehealth.wd1.myworkdayjobs.com/ANT
+    search: intern
+  - name: "Anthropic"
     type: greenhouse
     slug: anthropic
-  - name: Databricks
+  - name: "Anyscale"
+    type: ashby
+    slug: anyscale
+  - name: "Apollo"
+    type: greenhouse
+    slug: apolloio
+  - name: "Applied Materials"
+    type: workday
+    url: https://amat.wd1.myworkdayjobs.com/External
+    search: intern
+  - name: "AQR"
+    type: greenhouse
+    slug: aqr
+  - name: "Arize"
+    type: greenhouse
+    slug: arizeai
+  - name: "Asana"
+    type: greenhouse
+    slug: asana
+  - name: "Ashby"
+    type: ashby
+    slug: ashby
+  - name: "AssemblyAI"
+    type: greenhouse
+    slug: assemblyai
+  - name: "Astera Labs"
+    type: greenhouse
+    slug: asteralabs
+  - name: "Astranis"
+    type: greenhouse
+    slug: astranis
+  - name: "Astronomer"
+    type: ashby
+    slug: astronomer
+  - name: "Atlan"
+    type: ashby
+    slug: atlan
+  - name: "Attentive"
+    type: greenhouse
+    slug: attentive
+  - name: "Autodesk"
+    type: workday
+    url: https://autodesk.wd1.myworkdayjobs.com/Ext
+    search: intern
+  - name: "B2C2"
+    type: greenhouse
+    slug: b2c2
+  - name: "Belvedere Trading"
+    type: lever
+    slug: belvederetrading
+  - name: "Benchling"
+    type: ashby
+    slug: benchling
+  - name: "Benevity"
+    type: ashby
+    slug: benevity
+  - name: "Betterment"
+    type: greenhouse
+    slug: betterment
+  - name: "Bill.com"
+    type: greenhouse
+    slug: billcom
+  - name: "BlackRock"
+    type: workday
+    url: https://blackrock.wd1.myworkdayjobs.com/BlackRock_Professional
+    search: intern
+  - name: "Blackstone"
+    type: workday
+    url: https://blackstone.wd1.myworkdayjobs.com/Blackstone_Careers
+    search: intern
+  - name: "Block"
+    type: greenhouse
+    slug: block
+  - name: "Blue Origin"
+    type: workday
+    url: https://blueorigin.wd5.myworkdayjobs.com/BlueOrigin
+    search: intern
+  - name: "Boeing"
+    type: workday
+    url: https://boeing.wd1.myworkdayjobs.com/EXTERNAL_CAREERS
+    search: intern
+  - name: "Booz Allen"
+    type: workday
+    url: https://bah.wd1.myworkdayjobs.com/BAH_Jobs
+    search: intern
+  - name: "Braintrust"
+    type: ashby
+    slug: braintrust
+  - name: "Brave"
+    type: greenhouse
+    slug: brave
+  - name: "Braze"
+    type: greenhouse
+    slug: braze
+  - name: "Brex"
+    type: greenhouse
+    slug: brex
+  - name: "Bristol Myers Squibb"
+    type: workday
+    url: https://bristolmyerssquibb.wd5.myworkdayjobs.com/BMS
+    search: intern
+  - name: "Broadcom"
+    type: workday
+    url: https://broadcom.wd1.myworkdayjobs.com/External_Career
+    search: intern
+  - name: "Brookfield"
+    type: workday
+    url: https://brookfield.wd5.myworkdayjobs.com/Brookfield
+    search: intern
+  - name: "Buildkite"
+    type: greenhouse
+    slug: buildkite
+  - name: "Bungie"
+    type: greenhouse
+    slug: bungie
+  - name: "C3 AI"
+    type: greenhouse
+    slug: c3iot
+  - name: "CACI"
+    type: workday
+    url: https://caci.wd1.myworkdayjobs.com/External
+    search: intern
+  - name: "Cadence"
+    type: workday
+    url: https://cadence.wd1.myworkdayjobs.com/External_Careers
+    search: intern
+  - name: "Calendly"
+    type: greenhouse
+    slug: calendly
+  - name: "Calm"
+    type: greenhouse
+    slug: calm
+  - name: "Capital One"
+    type: workday
+    url: https://capitalone.wd12.myworkdayjobs.com/Capital_One
+    search: intern
+  - name: "Capstone"
+    type: greenhouse
+    slug: capstoneinvestmentadvisors
+  - name: "Carta"
+    type: greenhouse
+    slug: carta
+  - name: "Caterpillar"
+    type: workday
+    url: https://cat.wd5.myworkdayjobs.com/CaterpillarCareers
+    search: intern
+  - name: "Cerebras"
+    type: ashby
+    slug: cerebras
+  - name: "Chainguard"
+    type: greenhouse
+    slug: chainguard
+  - name: "Character.AI"
+    type: ashby
+    slug: character
+  - name: "Checkr"
+    type: greenhouse
+    slug: checkr
+  - name: "Chewy"
+    type: workday
+    url: https://chewy.wd5.myworkdayjobs.com/External
+    search: intern
+  - name: "Chime"
+    type: greenhouse
+    slug: chime
+  - name: "Ciena"
+    type: workday
+    url: https://ciena.wd5.myworkdayjobs.com/Careers
+    search: intern
+  - name: "Cigna"
+    type: workday
+    url: https://cigna.wd5.myworkdayjobs.com/cignacareers
+    search: intern
+  - name: "CircleCI"
+    type: greenhouse
+    slug: circleci
+  - name: "Citi"
+    type: workday
+    url: https://citi.wd5.myworkdayjobs.com/2
+    search: intern
+  - name: "Clerk"
+    type: ashby
+    slug: clerk
+  - name: "ClickHouse"
+    type: ashby
+    slug: clickhouse
+  - name: "ClickUp"
+    type: ashby
+    slug: clickup
+  - name: "Cockroach Labs"
+    type: greenhouse
+    slug: cockroachlabs
+  - name: "Cohere"
+    type: ashby
+    slug: cohere
+  - name: "Coinbase"
+    type: greenhouse
+    slug: coinbase
+  - name: "Collibra"
+    type: greenhouse
+    slug: collibra
+  - name: "commercetools"
+    type: greenhouse
+    slug: commercetools
+  - name: "Compass"
+    type: greenhouse
+    slug: urbancompass
+  - name: "Constructor"
+    type: ashby
+    slug: constructor
+  - name: "Contentful"
+    type: greenhouse
+    slug: contentful
+  - name: "CoreWeave"
+    type: greenhouse
+    slug: coreweave
+  - name: "Coursera"
+    type: greenhouse
+    slug: coursera
+  - name: "Cresta"
+    type: greenhouse
+    slug: cresta
+  - name: "Culture Amp"
+    type: greenhouse
+    slug: cultureamp
+  - name: "Cursor"
+    type: ashby
+    slug: cursor
+  - name: "Customer.io"
+    type: greenhouse
+    slug: customerio
+  - name: "CVS"
+    type: workday
+    url: https://cvshealth.wd1.myworkdayjobs.com/CVS_Health_Careers
+    search: intern
+  - name: "Databricks"
     type: greenhouse
     slug: databricks
-  - name: Plaid
+  - name: "Datadog"
+    type: greenhouse
+    slug: datadog
+  - name: "Decagon"
     type: ashby
-    slug: plaid
-  - name: Ramp
+    slug: decagon
+  - name: "Deepgram"
     type: ashby
-    slug: ramp
-  - name: Notion
+    slug: deepgram
+  - name: "Deepnote"
+    type: ashby
+    slug: deepnote
+  - name: "Deliveroo"
+    type: greenhouse
+    slug: deliveroo
+  - name: "Descript"
+    type: greenhouse
+    slug: descript
+  - name: "Deutsche Bank"
+    type: workday
+    url: https://db.wd3.myworkdayjobs.com/DBWebsite
+    search: intern
+  - name: "Dexcom"
+    type: workday
+    url: https://dexcom.wd1.myworkdayjobs.com/Dexcom
+    search: intern
+  - name: "Dexterity"
+    type: lever
+    slug: dexterity
+  - name: "Discord"
+    type: greenhouse
+    slug: discord
+  - name: "Disney"
+    type: workday
+    url: https://disney.wd5.myworkdayjobs.com/disneycareer
+    search: intern
+  - name: "Docker"
+    type: ashby
+    slug: docker
+  - name: "Domino Data Lab"
+    type: greenhouse
+    slug: dominodatalab
+  - name: "DoorDash"
+    type: greenhouse
+    slug: doordashusa
+  - name: "Drata"
+    type: ashby
+    slug: drata
+  - name: "Dropbox"
+    type: greenhouse
+    slug: dropbox
+  - name: "DRW"
+    type: greenhouse
+    slug: drweng
+  - name: "Duolingo"
+    type: greenhouse
+    slug: duolingo
+  - name: "eBay"
+    type: workday
+    url: https://ebay.wd5.myworkdayjobs.com/apply
+    search: intern
+  - name: "Eclipse Trading"
+    type: greenhouse
+    slug: eclipsetrading
+  - name: "Elastic"
+    type: greenhouse
+    slug: elastic
+  - name: "ElevenLabs"
+    type: ashby
+    slug: elevenlabs
+  - name: "Engineers Gate"
+    type: greenhouse
+    slug: engineersgate
+  - name: "Epic Games"
+    type: greenhouse
+    slug: epicgames
+  - name: "Epirus"
+    type: greenhouse
+    slug: epirus
+  - name: "Etched"
+    type: ashby
+    slug: etched
+  - name: "ExodusPoint"
+    type: greenhouse
+    slug: exoduspoint
+  - name: "Expensify"
+    type: ashby
+    slug: expensify
+  - name: "F5"
+    type: workday
+    url: https://ffive.wd5.myworkdayjobs.com/f5jobs
+    search: intern
+  - name: "Faire"
+    type: greenhouse
+    slug: faire
+  - name: "Fastly"
+    type: greenhouse
+    slug: fastly
+  - name: "Figma"
+    type: greenhouse
+    slug: figma
+  - name: "Figure"
+    type: greenhouse
+    slug: figureai
+  - name: "Fireblocks"
+    type: greenhouse
+    slug: fireblocks
+  - name: "Fivetran"
+    type: greenhouse
+    slug: fivetran
+  - name: "Flatiron Health"
+    type: greenhouse
+    slug: flatironhealth
+  - name: "Flexport"
+    type: greenhouse
+    slug: flexport
+  - name: "Flow Traders"
+    type: greenhouse
+    slug: flowtraders
+  - name: "FullStory"
+    type: ashby
+    slug: fullstory
+  - name: "Gamma"
+    type: ashby
+    slug: gamma
+  - name: "Geico"
+    type: workday
+    url: https://geico.wd1.myworkdayjobs.com/External
+    search: intern
+  - name: "Gelber"
+    type: greenhouse
+    slug: gelbergroup
+  - name: "Gemini"
+    type: greenhouse
+    slug: gemini
+  - name: "General Dynamics"
+    type: workday
+    url: https://gdit.wd5.myworkdayjobs.com/External_Career_Site
+    search: intern
+  - name: "Geneva Trading"
+    type: greenhouse
+    slug: genevatrading
+  - name: "Gilead"
+    type: workday
+    url: https://gilead.wd1.myworkdayjobs.com/gileadcareers
+    search: intern
+  - name: "Ginkgo Bioworks"
+    type: greenhouse
+    slug: ginkgobioworks
+  - name: "GitBook"
+    type: ashby
+    slug: gitbook
+  - name: "GitLab"
+    type: greenhouse
+    slug: gitlab
+  - name: "Glean"
+    type: greenhouse
+    slug: gleanwork
+  - name: "GM"
+    type: workday
+    url: https://generalmotors.wd5.myworkdayjobs.com/Careers_GM
+    search: intern
+  - name: "Gorgias"
+    type: ashby
+    slug: gorgias
+  - name: "Grafana Labs"
+    type: greenhouse
+    slug: grafanalabs
+  - name: "Greenhouse"
+    type: greenhouse
+    slug: greenhouse
+  - name: "GSK"
+    type: workday
+    url: https://gsk.wd5.myworkdayjobs.com/GSKCareers
+    search: intern
+  - name: "Gusto"
+    type: greenhouse
+    slug: gusto
+  - name: "Handshake"
+    type: ashby
+    slug: handshake
+  - name: "Harvey"
+    type: ashby
+    slug: harvey
+  - name: "Headway"
+    type: ashby
+    slug: headway
+  - name: "Hermeus"
+    type: lever
+    slug: hermeus
+  - name: "Hex"
+    type: ashby
+    slug: hex
+  - name: "Hightouch"
+    type: ashby
+    slug: hightouch
+  - name: "Home Depot"
+    type: workday
+    url: https://homedepot.wd5.myworkdayjobs.com/CareerDepot
+    search: intern
+  - name: "Honeycomb"
+    type: greenhouse
+    slug: honeycomb
+  - name: "Hootsuite"
+    type: greenhouse
+    slug: hootsuite
+  - name: "Hopper"
+    type: ashby
+    slug: hopper
+  - name: "HP"
+    type: workday
+    url: https://hp.wd5.myworkdayjobs.com/ExternalCareerSite
+    search: intern
+  - name: "HPE"
+    type: workday
+    url: https://hpe.wd5.myworkdayjobs.com/Jobsathpe
+    search: intern
+  - name: "Humana"
+    type: workday
+    url: https://humana.wd5.myworkdayjobs.com/Humana_External_Career_Site
+    search: intern
+  - name: "Illumina"
+    type: workday
+    url: https://illumina.wd1.myworkdayjobs.com/illumina-careers
+    search: intern
+  - name: "IMC"
+    type: greenhouse
+    slug: imc
+  - name: "Insitro"
+    type: ashby
+    slug: insitro
+  - name: "Instacart"
+    type: greenhouse
+    slug: instacart
+  - name: "Intel"
+    type: workday
+    url: https://intel.wd1.myworkdayjobs.com/External
+    search: intern
+  - name: "Intercom"
+    type: greenhouse
+    slug: intercom
+  - name: "Iterable"
+    type: ashby
+    slug: iterable
+  - name: "Jane Street"
+    type: greenhouse
+    slug: janestreet
+  - name: "JetBrains"
+    type: greenhouse
+    slug: jetbrains
+  - name: "Jump Crypto"
+    type: greenhouse
+    slug: jumpcrypto
+  - name: "Jump Trading"
+    type: greenhouse
+    slug: jumptrading
+  - name: "Justworks"
+    type: greenhouse
+    slug: justworks
+  - name: "Kayak"
+    type: ashby
+    slug: kayak
+  - name: "Kestra"
+    type: ashby
+    slug: kestra
+  - name: "Khan Academy"
+    type: greenhouse
+    slug: khanacademy
+  - name: "KLA"
+    type: workday
+    url: https://kla.wd1.myworkdayjobs.com/Search
+    search: intern
+  - name: "Klaviyo"
+    type: greenhouse
+    slug: klaviyo
+  - name: "Kodiak"
+    type: greenhouse
+    slug: kodiak
+  - name: "Koho"
+    type: ashby
+    slug: koho
+  - name: "Komodo Health"
+    type: greenhouse
+    slug: komodohealth
+  - name: "Kong"
+    type: ashby
+    slug: kong
+  - name: "Labelbox"
+    type: greenhouse
+    slug: labelbox
+  - name: "Lambda"
+    type: ashby
+    slug: lambda
+  - name: "LangChain"
+    type: ashby
+    slug: langchain
+  - name: "Lattice"
+    type: greenhouse
+    slug: lattice
+  - name: "LaunchDarkly"
+    type: greenhouse
+    slug: launchdarkly
+  - name: "Lightdash"
+    type: ashby
+    slug: lightdash
+  - name: "Lightmatter"
+    type: greenhouse
+    slug: lightmatter
+  - name: "Linear"
+    type: ashby
+    slug: linear
+  - name: "Lithic"
+    type: greenhouse
+    slug: lithic
+  - name: "Lucid Motors"
+    type: greenhouse
+    slug: lucidmotors
+  - name: "Luma AI"
+    type: ashby
+    slug: lumaai
+  - name: "Lyft"
+    type: greenhouse
+    slug: lyft
+  - name: "Lyra Health"
+    type: lever
+    slug: lyrahealth
+  - name: "Mach Industries"
+    type: greenhouse
+    slug: machindustries
+  - name: "Mako"
+    type: greenhouse
+    slug: mako
+  - name: "Man Group"
+    type: greenhouse
+    slug: mangroup
+  - name: "Mapbox"
+    type: ashby
+    slug: mapbox
+  - name: "Mastercard"
+    type: workday
+    url: https://mastercard.wd1.myworkdayjobs.com/CorporateCareers
+    search: intern
+  - name: "Material Security"
+    type: ashby
+    slug: materialsecurity
+  - name: "MatX"
+    type: ashby
+    slug: matx
+  - name: "May Mobility"
+    type: greenhouse
+    slug: maymobility
+  - name: "Medium"
+    type: greenhouse
+    slug: medium
+  - name: "Medtronic"
+    type: workday
+    url: https://medtronic.wd1.myworkdayjobs.com/MedtronicCareers
+    search: intern
+  - name: "Merck"
+    type: workday
+    url: https://msd.wd5.myworkdayjobs.com/SearchJobs
+    search: intern
+  - name: "Mercor"
+    type: ashby
+    slug: mercor
+  - name: "Mercury"
+    type: greenhouse
+    slug: mercury
+  - name: "Merlin Labs"
+    type: lever
+    slug: merlinlabs
+  - name: "Metabase"
+    type: lever
+    slug: metabase
+  - name: "Micron"
+    type: workday
+    url: https://micron.wd1.myworkdayjobs.com/External
+    search: intern
+  - name: "Mintlify"
+    type: ashby
+    slug: mintlify
+  - name: "Miro"
+    type: ashby
+    slug: miro
+  - name: "Mixpanel"
+    type: greenhouse
+    slug: mixpanel
+  - name: "Modal"
+    type: ashby
+    slug: modal
+  - name: "Modern Treasury"
+    type: ashby
+    slug: moderntreasury
+  - name: "MongoDB"
+    type: greenhouse
+    slug: mongodb
+  - name: "Monte Carlo"
+    type: ashby
+    slug: montecarlodata
+  - name: "Monzo"
+    type: greenhouse
+    slug: monzo
+  - name: "Morgan Stanley"
+    type: workday
+    url: https://ms.wd5.myworkdayjobs.com/External
+    search: intern
+  - name: "MotherDuck"
+    type: ashby
+    slug: motherduck
+  - name: "Motional"
+    type: greenhouse
+    slug: motional
+  - name: "Motive"
+    type: greenhouse
+    slug: gomotive
+  - name: "Motorola Solutions"
+    type: workday
+    url: https://motorolasolutions.wd5.myworkdayjobs.com/Careers
+    search: intern
+  - name: "Mozilla"
+    type: greenhouse
+    slug: mozilla
+  - name: "N26"
+    type: greenhouse
+    slug: n26
+  - name: "n8n"
+    type: ashby
+    slug: n8n
+  - name: "Nasdaq"
+    type: greenhouse
+    slug: nasdaq
+  - name: "Navan"
+    type: greenhouse
+    slug: tripactions
+  - name: "Neo Financial"
+    type: ashby
+    slug: neofinancial
+  - name: "Netlify"
+    type: greenhouse
+    slug: netlify
+  - name: "Netskope"
+    type: greenhouse
+    slug: netskope
+  - name: "Nextdoor"
+    type: greenhouse
+    slug: nextdoor
+  - name: "Nintendo"
+    type: greenhouse
+    slug: nintendo
+  - name: "Northrop Grumman"
+    type: workday
+    url: https://ngc.wd1.myworkdayjobs.com/Northrop_Grumman_External_Site
+    search: intern
+  - name: "Northwestern Mutual"
+    type: workday
+    url: https://northwesternmutual.wd5.myworkdayjobs.com/CORPORATE-CAREERS
+    search: intern
+  - name: "Notion"
     type: ashby
     slug: notion
-  - name: Vercel
+  - name: "Nubank"
+    type: ashby
+    slug: nubank
+  - name: "Nuro"
+    type: greenhouse
+    slug: nuro
+  - name: "NVIDIA"
+    type: workday
+    url: https://nvidia.wd5.myworkdayjobs.com/NVIDIAExternalCareerSite
+    search: intern
+  - name: "Nylas"
+    type: ashby
+    slug: nylas
+  - name: "Okta"
+    type: greenhouse
+    slug: okta
+  - name: "Olo"
+    type: lever
+    slug: olo
+  - name: "Omni"
+    type: ashby
+    slug: omni
+  - name: "OpenAI"
+    type: ashby
+    slug: openai
+  - name: "OpsLevel"
+    type: ashby
+    slug: opslevel
+  - name: "Orca Security"
+    type: greenhouse
+    slug: orcasecurity
+  - name: "Oscar Health"
+    type: greenhouse
+    slug: oscar
+  - name: "Otter.ai"
+    type: greenhouse
+    slug: otterai
+  - name: "Oura"
+    type: greenhouse
+    slug: oura
+  - name: "Outreach"
+    type: lever
+    slug: outreach
+  - name: "Outschool"
+    type: ashby
+    slug: outschool
+  - name: "PagerDuty"
+    type: greenhouse
+    slug: pagerduty
+  - name: "Palantir"
+    type: lever
+    slug: palantir
+  - name: "Paradigm"
+    type: ashby
+    slug: paradigm
+  - name: "Patreon"
+    type: ashby
+    slug: patreon
+  - name: "Payoneer"
+    type: greenhouse
+    slug: payoneer
+  - name: "PayPal"
+    type: workday
+    url: https://paypal.wd1.myworkdayjobs.com/jobs
+    search: intern
+  - name: "PDT Partners"
+    type: greenhouse
+    slug: pdtpartners
+  - name: "Peloton"
+    type: greenhouse
+    slug: peloton
+  - name: "Pendo"
+    type: greenhouse
+    slug: pendo
+  - name: "Perplexity"
+    type: ashby
+    slug: perplexity
+  - name: "Pfizer"
+    type: workday
+    url: https://pfizer.wd1.myworkdayjobs.com/PfizerCareers
+    search: intern
+  - name: "Physical Intelligence"
+    type: ashby
+    slug: physicalintelligence
+  - name: "Pika"
+    type: ashby
+    slug: pika
+  - name: "Pinecone"
+    type: ashby
+    slug: pinecone
+  - name: "Pinterest"
+    type: greenhouse
+    slug: pinterest
+  - name: "Plaid"
+    type: ashby
+    slug: plaid
+  - name: "Planet"
+    type: greenhouse
+    slug: planetlabs
+  - name: "PlanetScale"
+    type: greenhouse
+    slug: planetscale
+  - name: "Plotly"
+    type: ashby
+    slug: plotly
+  - name: "Point72"
+    type: greenhouse
+    slug: point72
+  - name: "PostHog"
+    type: ashby
+    slug: posthog
+  - name: "Prefect"
+    type: ashby
+    slug: prefect
+  - name: "Proton"
+    type: greenhouse
+    slug: proton
+  - name: "Prudential"
+    type: workday
+    url: https://pru.wd5.myworkdayjobs.com/Careers
+    search: intern
+  - name: "Public"
+    type: greenhouse
+    slug: public
+  - name: "Quadrature"
+    type: greenhouse
+    slug: quadraturecapital
+  - name: "Qube Research & Technologies"
+    type: greenhouse
+    slug: quberesearchandtechnologies
+  - name: "Quora"
+    type: ashby
+    slug: quora
+  - name: "Railway"
+    type: ashby
+    slug: railway
+  - name: "Ramp"
+    type: ashby
+    slug: ramp
+  - name: "Recursion"
+    type: greenhouse
+    slug: recursionpharmaceuticals
+  - name: "Reddit"
+    type: greenhouse
+    slug: reddit
+  - name: "Relativity Space"
+    type: greenhouse
+    slug: relativity
+  - name: "Render"
+    type: ashby
+    slug: render
+  - name: "Replit"
+    type: ashby
+    slug: replit
+  - name: "Resend"
+    type: ashby
+    slug: resend
+  - name: "Riot Games"
+    type: greenhouse
+    slug: riotgames
+  - name: "Ro"
+    type: lever
+    slug: ro
+  - name: "Robinhood"
+    type: greenhouse
+    slug: robinhood
+  - name: "Roblox"
+    type: greenhouse
+    slug: roblox
+  - name: "Rocket Lab"
+    type: greenhouse
+    slug: rocketlab
+  - name: "Rockstar"
+    type: greenhouse
+    slug: rockstargames
+  - name: "Roku"
+    type: greenhouse
+    slug: roku
+  - name: "Rover"
+    type: lever
+    slug: rover
+  - name: "Salesforce"
+    type: workday
+    url: https://salesforce.wd12.myworkdayjobs.com/External_Career_Site
+    search: intern
+  - name: "SambaNova"
+    type: greenhouse
+    slug: sambanovasystems
+  - name: "Samsara"
+    type: greenhouse
+    slug: samsara
+  - name: "Sanity"
+    type: ashby
+    slug: sanity
+  - name: "Saronic"
+    type: ashby
+    slug: saronic
+  - name: "Scale AI"
+    type: greenhouse
+    slug: scaleai
+  - name: "Schonfeld"
+    type: greenhouse
+    slug: schonfeld
+  - name: "Scopely"
+    type: greenhouse
+    slug: scopely
+  - name: "Secureframe"
+    type: ashby
+    slug: secureframe
+  - name: "Semgrep"
+    type: ashby
+    slug: semgrep
+  - name: "Sentry"
+    type: ashby
+    slug: sentry
+  - name: "Sezzle"
+    type: greenhouse
+    slug: sezzle
+  - name: "Sierra"
+    type: ashby
+    slug: sierra
+  - name: "Sigma Computing"
+    type: greenhouse
+    slug: sigmacomputing
+  - name: "SingleStore"
+    type: greenhouse
+    slug: singlestore
+  - name: "Skydio"
+    type: ashby
+    slug: skydio
+  - name: "Smartsheet"
+    type: greenhouse
+    slug: smartsheet
+  - name: "Snorkel"
+    type: greenhouse
+    slug: snorkelai
+  - name: "Snowflake"
+    type: ashby
+    slug: snowflake
+  - name: "Snyk"
+    type: ashby
+    slug: snyk
+  - name: "Socket"
+    type: ashby
+    slug: socket
+  - name: "SoFi"
+    type: greenhouse
+    slug: sofi
+  - name: "Sony Interactive"
+    type: workday
+    url: https://sonyglobal.wd1.myworkdayjobs.com/SonyGlobalCareers
+    search: intern
+  - name: "Southwest"
+    type: workday
+    url: https://swa.wd1.myworkdayjobs.com/External
+    search: intern
+  - name: "SpaceX"
+    type: greenhouse
+    slug: spacex
+  - name: "Spotify"
+    type: lever
+    slug: spotify
+  - name: "Squarepoint"
+    type: greenhouse
+    slug: squarepointcapital
+  - name: "Squarespace"
+    type: greenhouse
+    slug: squarespace
+  - name: "Stability AI"
+    type: greenhouse
+    slug: stabilityai
+  - name: "State Street"
+    type: workday
+    url: https://statestreet.wd1.myworkdayjobs.com/Global
+    search: intern
+  - name: "Storyblok"
+    type: greenhouse
+    slug: storyblok
+  - name: "Strava"
+    type: ashby
+    slug: strava
+  - name: "Stripe"
+    type: greenhouse
+    slug: stripe
+  - name: "Stryker"
+    type: workday
+    url: https://stryker.wd1.myworkdayjobs.com/StrykerCareers
+    search: intern
+  - name: "Substack"
+    type: ashby
+    slug: substack
+  - name: "Suno"
+    type: ashby
+    slug: suno
+  - name: "Supabase"
+    type: ashby
+    slug: supabase
+  - name: "Supercell"
+    type: ashby
+    slug: supercell
+  - name: "Synthesia"
+    type: ashby
+    slug: synthesia
+  - name: "Sysdig"
+    type: lever
+    slug: sysdig
+  - name: "T-Mobile"
+    type: workday
+    url: https://tmobile.wd1.myworkdayjobs.com/External
+    search: intern
+  - name: "Tailscale"
+    type: greenhouse
+    slug: tailscale
+  - name: "Take-Two"
+    type: greenhouse
+    slug: taketwo
+  - name: "Target"
+    type: workday
+    url: https://target.wd5.myworkdayjobs.com/targetcareers
+    search: intern
+  - name: "Temporal"
+    type: ashby
+    slug: temporal
+  - name: "Tenstorrent"
+    type: greenhouse
+    slug: tenstorrent
+  - name: "Thumbtack"
+    type: ashby
+    slug: thumbtack
+  - name: "Tines"
+    type: greenhouse
+    slug: tines
+  - name: "Toast"
+    type: greenhouse
+    slug: toast
+  - name: "Together AI"
+    type: greenhouse
+    slug: togetherai
+  - name: "Toptal"
+    type: lever
+    slug: toptal
+  - name: "Torq"
+    type: greenhouse
+    slug: torq
+  - name: "Tower Research"
+    type: greenhouse
+    slug: towerresearchcapital
+  - name: "TransMarket Group"
+    type: greenhouse
+    slug: transmarketgroup
+  - name: "Travelers"
+    type: workday
+    url: https://travelers.wd5.myworkdayjobs.com/External
+    search: intern
+  - name: "Tripadvisor"
+    type: greenhouse
+    slug: tripadvisor
+  - name: "Turing"
+    type: greenhouse
+    slug: turing
+  - name: "Twilio"
+    type: greenhouse
+    slug: twilio
+  - name: "Twingate"
+    type: lever
+    slug: twingate
+  - name: "Twitch"
+    type: greenhouse
+    slug: twitch
+  - name: "Udemy"
+    type: greenhouse
+    slug: udemy
+  - name: "UiPath"
+    type: ashby
+    slug: uipath
+  - name: "Uniswap"
+    type: ashby
+    slug: uniswap
+  - name: "Upbound"
+    type: greenhouse
+    slug: upbound
+  - name: "Upstart"
+    type: greenhouse
+    slug: upstart
+  - name: "Upwork"
+    type: greenhouse
+    slug: upwork
+  - name: "Ursa Major"
+    type: greenhouse
+    slug: ursamajor
+  - name: "USAA"
+    type: workday
+    url: https://usaa.wd1.myworkdayjobs.com/USAAJOBSWD
+    search: intern
+  - name: "Valkyrie Trading"
+    type: lever
+    slug: valkyrietrading
+  - name: "Vanguard"
+    type: workday
+    url: https://vanguard.wd5.myworkdayjobs.com/vanguard_external
+    search: intern
+  - name: "Vannevar Labs"
+    type: greenhouse
+    slug: vannevarlabs
+  - name: "Vanta"
+    type: ashby
+    slug: vanta
+  - name: "Varda"
+    type: greenhouse
+    slug: vardaspace
+  - name: "Vatic Labs"
+    type: greenhouse
+    slug: vaticlabs
+  - name: "Veeva"
+    type: lever
+    slug: veeva
+  - name: "Vercel"
     type: greenhouse
     slug: vercel
-  # Example of a custom careers page scraped from HTML:
-  # - name: Example Co
-  #   type: html
-  #   url: https://example.com/careers
-  #   selector: "a.job-link"
-  #   pattern: "/jobs/\\d+"
+  - name: "Verkada"
+    type: greenhouse
+    slug: verkada
+  - name: "Vertex"
+    type: workday
+    url: https://vrtx.wd501.myworkdayjobs.com/vertex_careers
+    search: intern
+  - name: "Virtu"
+    type: greenhouse
+    slug: virtu
+  - name: "Voleon"
+    type: ashby
+    slug: voleon
+  - name: "Waabi"
+    type: lever
+    slug: waabi
+  - name: "Warner Bros Discovery"
+    type: workday
+    url: https://warnerbros.wd5.myworkdayjobs.com/global
+    search: intern
+  - name: "Waymo"
+    type: greenhouse
+    slug: waymo
+  - name: "Wealthfront"
+    type: lever
+    slug: wealthfront
+  - name: "Wealthsimple"
+    type: ashby
+    slug: wealthsimple
+  - name: "Weaviate"
+    type: ashby
+    slug: weaviate
+  - name: "Webflow"
+    type: ashby
+    slug: webflow
+  - name: "Whoop"
+    type: ashby
+    slug: whoop
+  - name: "Wikimedia"
+    type: greenhouse
+    slug: wikimedia
+  - name: "Wing"
+    type: greenhouse
+    slug: wing
+  - name: "Wolt"
+    type: greenhouse
+    slug: wolt
+  - name: "Workato"
+    type: greenhouse
+    slug: workato
+  - name: "Workday"
+    type: workday
+    url: https://workday.wd5.myworkdayjobs.com/Workday
+    search: intern
+  - name: "WorkOS"
+    type: ashby
+    slug: workos
+  - name: "WorldQuant"
+    type: greenhouse
+    slug: worldquant
+  - name: "Writer"
+    type: ashby
+    slug: writer
+  - name: "xAI"
+    type: greenhouse
+    slug: xai
+  - name: "Zapier"
+    type: ashby
+    slug: zapier
+  - name: "Zillow"
+    type: workday
+    url: https://zillow.wd5.myworkdayjobs.com/Zillow_Group_External
+    search: intern
+  - name: "Zip"
+    type: ashby
+    slug: zip
+  - name: "Zipline"
+    type: greenhouse
+    slug: flyzipline
+  - name: "Zocdoc"
+    type: greenhouse
+    slug: zocdoc
+  - name: "Zoom"
+    type: workday
+    url: https://zoom.wd5.myworkdayjobs.com/Zoom
+    search: intern
+  - name: "ZoomInfo"
+    type: greenhouse
+    slug: zoominfo
+  - name: "Zoox"
+    type: lever
+    slug: zoox
+  - name: "Zscaler"
+    type: greenhouse
+    slug: zscaler

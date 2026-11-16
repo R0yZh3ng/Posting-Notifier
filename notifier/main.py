@@ -64,6 +64,13 @@ def run_once(cfg: dict, store: Store, quiet_first_run: bool, workers: int = 8) -
     return new_matches
 
 
+def summary(new: int, store: Store, cfg: dict) -> str:
+    total = len(store.matched_jobs())
+    md = cfg.get("output", {}).get("markdown", "jobs.md")
+    return (f"{new} new matching job(s) since last crawl. {total} matching job(s) total; "
+            f"full list in {md} or `notifier list`.")
+
+
 def cmd_list(cfg: dict, store: Store) -> None:
     rows = store.matched_jobs()
     for r in rows:
@@ -98,7 +105,7 @@ def main(argv: list[str] | None = None) -> None:
         print("Rebuilt report files.")
     elif args.cmd == "once":
         n = run_once(cfg, store, quiet)
-        print(f"Done: {n} new matching job(s).")
+        print(summary(n, store, cfg))
     elif args.cmd == "run":
         interval = args.interval or cfg.get("poll_interval_minutes", 30)
         print(f"Polling every {interval} min. Ctrl-C to stop.")
@@ -106,7 +113,7 @@ def main(argv: list[str] | None = None) -> None:
             print(f"\n[{datetime.now():%Y-%m-%d %H:%M:%S}] crawling…")
             try:
                 n = run_once(cfg, store, quiet)
-                print(f"{n} new matching job(s).")
+                print(summary(n, store, cfg))
             except Exception as e:
                 print(f"crawl failed: {e}", file=sys.stderr)
             try:

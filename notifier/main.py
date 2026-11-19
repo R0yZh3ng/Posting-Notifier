@@ -19,7 +19,18 @@ def load_config(path: str | None) -> dict:
     if path is None:
         path = "config.local.yaml" if os.path.exists("config.local.yaml") else "config.yaml"
     with open(path) as f:
-        return yaml.safe_load(f)
+        cfg = yaml.safe_load(f)
+    if path == "config.local.yaml" and os.path.exists("config.yaml"):
+        with open("config.yaml") as f:  # local file only needs the keys it overrides
+            cfg = _merge(yaml.safe_load(f), cfg)
+    return cfg
+
+
+def _merge(base: dict, over: dict) -> dict:
+    out = dict(base)
+    for k, v in over.items():
+        out[k] = _merge(out[k], v) if isinstance(v, dict) and isinstance(out.get(k), dict) else v
+    return out
 
 
 def run_once(cfg: dict, store: Store, quiet_first_run: bool, workers: int = 8) -> int:
@@ -28,6 +39,7 @@ def run_once(cfg: dict, store: Store, quiet_first_run: bool, workers: int = 8) -
     companies = cfg.get("companies", [])
     new_matches = 0
     baselined = []
+    fresh = []  # new matches to include in the email digest
 
     def fetch(c):
         try:
@@ -51,12 +63,15 @@ def run_once(cfg: dict, store: Store, quiet_first_run: bool, workers: int = 8) -
                         continue
                     print(f"  + {job.company}: {job.title} [{job.location}] {job.url}")
                     notify.send(cfg.get("notify", {}), job)
+                    fresh.append(job)
             store.commit()
             if quiet:
                 baselined.append((c["name"], new_here))
             else:
                 print(f"  {c['name']}: {len(jobs)} postings, {new_here} new matches")
             new_matches += new_here
+    notify.email_digest(cfg.get("notify", {}), fresh)
+    notify.ntfy_digest(cfg.get("notify", {}), fresh)
     report.write_all(cfg.get("output", {}), store)
     if baselined:
         n = sum(k for _, k in baselined)
@@ -101,6 +116,7 @@ def main(argv: list[str] | None = None) -> None:
     r.add_argument("--interval", type=float, help="minutes between crawls (overrides config)")
     ls = sub.add_parser("list", help="print matching jobs")
     ls.add_argument("--since", help="only jobs posted within this window, e.g. 24h or 3d")
+    sub.add_parser("test-email", help="send a sample digest email to check your SMTP settings")
     sub.add_parser("rebuild", help="regenerate jobs.md / jobs.html from the database")
     u = sub.add_parser("ui", help="open the web interface")
     u.add_argument("--port", type=int, default=8765)
@@ -117,6 +133,12 @@ def main(argv: list[str] | None = None) -> None:
     if args.cmd == "ui":
         from . import ui
         ui.serve(cfg, args.db, lambda c, s, q: run_once(c, s, q), args.port, not args.no_browser)
+    elif args.cmd == "test-email":
+        from .models import Job
+        sample = [Job("Example Co", "Software Engineer Intern, Summer 2027", "https://example.com/jobs/1", "Remote")]
+        if not notify._email_cfg(cfg.get("notify", {})):
+            raise SystemExit("Set notify.email.enabled: true plus smtp_host, username, password and to.")
+        notify.email_digest(cfg.get("notify", {}), sample)
     elif args.cmd == "list":
         cmd_list(cfg, store, args.since)
     elif args.cmd == "rebuild":

@@ -16,15 +16,38 @@ Edit `config.yaml`:
 - `criteria.exclude`: and none of these (marketing, mechanical, senior, ...).
   All three are case-insensitive regexes matched on whole words.
 - `criteria.locations`: optional keywords matched against title + location.
-- `companies`: boards to watch (400+ preloaded, all verified live). Supported `type`s:
-  `greenhouse`, `lever`, `ashby`, `workable`, `smartrecruiters`, `workday`, and `html`
+- `companies`: boards to watch (500+ preloaded, including Canadian employers and big banks/tech). Supported `type`s:
+  `greenhouse`, `lever`, `ashby`, `workable`, `smartrecruiters`, `workday`, `amazon`, `eightfold` (Microsoft, Netflix), and `html`
   (generic scraper with a CSS `selector` + href `pattern`).
   The `slug` is the identifier in the company's careers URL, e.g. `boards.greenhouse.io/<slug>`,
   `jobs.lever.co/<slug>`, `jobs.ashbyhq.com/<slug>`. Workday boards take the public careers `url`
-  plus an optional `search` term, since those boards have thousands of postings.
+  plus an optional `search` term or list of terms (e.g. `["intern", "co-op"]`), since those boards have thousands of postings.
+- `notify.ntfy.topic`: free phone push, no account. Install the ntfy app, subscribe to your topic.
+- `notify.email`: one digest email per crawl that finds new matches (see below).
 - `notify.desktop`: macOS notification. `notify.webhook`: Slack or Discord incoming webhook URL.
 
-Prefer `config.local.yaml` (gitignored) if you put a webhook URL in there; it overrides `config.yaml`.
+Prefer `config.local.yaml` (gitignored) for secrets like webhook URLs and your email password. It only
+needs the keys you want to override; everything else comes from `config.yaml`.
+
+## Email notifications
+
+Create `config.local.yaml`:
+
+```yaml
+notify:
+  email:
+    enabled: true
+    smtp_host: smtp.gmail.com     # smtp.office365.com, smtp.fastmail.com, ...
+    smtp_port: 587
+    username: you@gmail.com
+    password: "xxxx xxxx xxxx xxxx"   # Gmail: create an App Password at myaccount.google.com/apppasswords
+    to: you@gmail.com
+```
+
+Then check it with `uv run notifier test-email`. After that, every crawl (CLI, `run`, or the web UI)
+that finds new matches sends a single email listing them with links. The password can instead be set
+via the `POSTING_NOTIFIER_SMTP_PASSWORD` environment variable. Remember the crawl has to be running
+(`uv run notifier run`, or the UI with auto-crawl) for emails to arrive.
 
 ## Web UI
 
@@ -32,8 +55,15 @@ Prefer `config.local.yaml` (gitignored) if you put a webhook URL in there; it ov
 uv run notifier ui            # opens http://127.0.0.1:8765
 ```
 
-Browse every match with search, company / time-window filters, and Save / Applied / Hide
-tracking (stored in `jobs.db`). **Crawl now** runs a crawl with a live log, and **auto-crawl**
+Three views:
+
+- **Jobs**: every match, with search, company / time-window / region (Canada, Vancouver, Toronto, Remote) filters.
+  Save, mark Applied, or Hide any job.
+- **Tracker**: a drag-and-drop board (Saved, Applied, Online assessment, Interview, Offer, Rejected, Withdrawn)
+  with notes, dates, follow-up reminders, contact and salary. Add applications for jobs the crawler didn't find, export CSV.
+- **Stats**: applications sent, response rate, pipeline, and follow-ups due.
+
+Everything is stored in `jobs.db`. **Crawl now** runs a crawl with a live log, and **auto-crawl**
 repeats it every `poll_interval_minutes` while the UI is open. Use `--port` or `--no-browser` as needed.
 
 ## Run (terminal)

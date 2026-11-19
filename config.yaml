@@ -82,6 +82,17 @@ criteria:
 notify:
   desktop: true          # macOS notification via osascript
   webhook: ""            # Slack / Discord incoming webhook URL
+  ntfy:                  # free phone push, no account: install the ntfy app, subscribe to this topic
+    topic: ""            # pick something unguessable, e.g. "posting-notifier-8f3k29xq" (it acts as the password)
+  email:                 # one digest email per crawl that finds new matches
+    enabled: false
+    smtp_host: smtp.gmail.com
+    smtp_port: 587       # 587 = STARTTLS, 465 = SSL
+    username: ""         # e.g. you@gmail.com
+    password: ""         # Gmail needs an app password. Better: put it in config.local.yaml
+                         # or the POSTING_NOTIFIER_SMTP_PASSWORD env var, not here.
+    from: ""             # defaults to username
+    to: ""               # where to deliver (can be the same address)
 
 # Output files
 output:
@@ -1396,3 +1407,384 @@ companies:
   - name: "Zscaler"
     type: greenhouse
     slug: zscaler
+
+  # ---- added: Canada, big employers, and more boards ----
+  - name: "Lightspeed"
+    type: ashby
+    slug: lightspeedhq
+  - name: "Trulioo"
+    type: ashby
+    slug: trulioo
+  - name: "Dialpad"
+    type: greenhouse
+    slug: dialpad
+  - name: "Visier"
+    type: ashby
+    slug: visier
+  - name: "Thinkific"
+    type: ashby
+    slug: thinkific
+  - name: "Jobber"
+    type: ashby
+    slug: jobber
+  - name: "Clearco"
+    type: ashby
+    slug: clearco
+  - name: "Float"
+    type: ashby
+    slug: float
+  - name: "Later"
+    type: greenhouse
+    slug: later
+  - name: "Wattpad"
+    type: lever
+    slug: wattpad
+  - name: "Mejuri"
+    type: greenhouse
+    slug: mejuri
+  - name: "Plooto"
+    type: lever
+    slug: plooto
+  - name: "Achievers"
+    type: lever
+    slug: achievers
+  - name: "Tigera"
+    type: greenhouse
+    slug: tigera
+  - name: "Cloudflare"
+    type: greenhouse
+    slug: cloudflare
+  - name: "Ripple"
+    type: greenhouse
+    slug: ripple
+  - name: "Midjourney"
+    type: ashby
+    slug: midjourney
+  - name: "Runway"
+    type: ashby
+    slug: runway
+  - name: "Cognition"
+    type: ashby
+    slug: cognition
+  - name: "New Relic"
+    type: greenhouse
+    slug: newrelic
+  - name: "Sumo Logic"
+    type: greenhouse
+    slug: sumologic
+  - name: "Rubrik"
+    type: greenhouse
+    slug: rubrik
+  - name: "Pure Storage"
+    type: greenhouse
+    slug: purestorage
+  - name: "Zuora"
+    type: greenhouse
+    slug: zuora
+  - name: "Anaplan"
+    type: greenhouse
+    slug: anaplan
+  - name: "Coupa"
+    type: lever
+    slug: coupa
+  - name: "Box"
+    type: greenhouse
+    slug: boxinc
+  - name: "Bandwidth"
+    type: greenhouse
+    slug: bandwidth
+  - name: "Salesloft"
+    type: greenhouse
+    slug: salesloft
+  - name: "Lucid Software"
+    type: greenhouse
+    slug: lucidsoftware
+  - name: "Typeform"
+    type: greenhouse
+    slug: typeform
+  - name: "SurveyMonkey"
+    type: ashby
+    slug: surveymonkey
+  - name: "Qualtrics"
+    type: greenhouse
+    slug: qualtrics
+  - name: "Gainsight"
+    type: ashby
+    slug: gainsight
+  - name: "JFrog"
+    type: greenhouse
+    slug: jfrog
+  - name: "Wiz"
+    type: greenhouse
+    slug: wizinc
+  - name: "Tanium"
+    type: greenhouse
+    slug: tanium
+  - name: "Tenable"
+    type: greenhouse
+    slug: tenableinc
+  - name: "Recorded Future"
+    type: greenhouse
+    slug: recordedfuture
+  - name: "Cribl"
+    type: greenhouse
+    slug: cribl
+  - name: "Zynga"
+    type: greenhouse
+    slug: zyngacareers
+  - name: "Bird"
+    type: greenhouse
+    slug: bird
+  - name: "Scribd"
+    type: ashby
+    slug: scribdinc
+  - name: "Mural"
+    type: ashby
+    slug: mural
+  - name: "Bitwarden"
+    type: greenhouse
+    slug: bitwarden
+  - name: "Extreme Networks"
+    type: lever
+    slug: extremenetworks
+  - name: "Ubiquiti"
+    type: greenhouse
+    slug: ubiquiti
+  - name: "Rigetti"
+    type: lever
+    slug: rigetti
+  - name: "IonQ"
+    type: greenhouse
+    slug: ionq
+  - name: "PsiQuantum"
+    type: greenhouse
+    slug: psiquantum
+  - name: "Carvana"
+    type: greenhouse
+    slug: carvana
+  - name: "Column"
+    type: ashby
+    slug: column
+  - name: "Lead Bank"
+    type: ashby
+    slug: leadbank
+  - name: "Treasury Prime"
+    type: greenhouse
+    slug: treasuryprime
+  - name: "Synctera"
+    type: ashby
+    slug: synctera
+  - name: "Alloy"
+    type: greenhouse
+    slug: alloy
+  - name: "Sardine"
+    type: ashby
+    slug: sardine
+  - name: "Persona"
+    type: ashby
+    slug: persona
+  - name: "Socure"
+    type: ashby
+    slug: socure
+  - name: "Middesk"
+    type: ashby
+    slug: middesk
+  - name: "Sonder"
+    type: ashby
+    slug: sonder
+  - name: "Gopuff"
+    type: lever
+    slug: gopuff
+  - name: "Dave"
+    type: ashby
+    slug: dave
+  - name: "Acorns"
+    type: ashby
+    slug: acorns
+  - name: "Clear Street"
+    type: greenhouse
+    slug: clearstreet
+  - name: "DriveWealth"
+    type: greenhouse
+    slug: drivewealth
+  - name: "Alpaca"
+    type: greenhouse
+    slug: alpaca
+  - name: "Tastytrade"
+    type: greenhouse
+    slug: tastytrade
+  - name: "HubSpot"
+    type: greenhouse
+    slug: hubspotjobs
+  - name: "Hudson River Trading"
+    type: greenhouse
+    slug: wehrtyou
+  - name: "League"
+    type: greenhouse
+    slug: leagueinc
+  - name: "PointClickCare"
+    type: lever
+    slug: pointclickcare
+  - name: "D2L"
+    type: greenhouse
+    slug: d2l
+  - name: "Geotab"
+    type: greenhouse
+    slug: geotab
+  - name: "Magnet Forensics"
+    type: lever
+    slug: magnetforensics
+  - name: "Miovision"
+    type: ashby
+    slug: miovision
+  - name: "Fullscript"
+    type: lever
+    slug: fullscript
+  - name: "Procurify"
+    type: ashby
+    slug: procurify
+  - name: "Maple"
+    type: lever
+    slug: getmaple
+  - name: "Jane App"
+    type: ashby
+    slug: jane
+  - name: "Rewind"
+    type: ashby
+    slug: rewind
+  - name: "Gong"
+    type: greenhouse
+    slug: gongio
+  - name: "Sanctuary AI"
+    type: ashby
+    slug: sanctuary
+  - name: "AppLovin"
+    type: greenhouse
+    slug: applovin
+  - name: "Appian"
+    type: greenhouse
+    slug: appian
+  - name: "NerdWallet"
+    type: ashby
+    slug: nerdwallet
+  - name: "Sprout Social"
+    type: greenhouse
+    slug: sproutsocial
+  - name: "Thoughtworks"
+    type: greenhouse
+    slug: thoughtworks
+  - name: "Xometry"
+    type: greenhouse
+    slug: xometry
+  - name: "Yext"
+    type: greenhouse
+    slug: yext
+  - name: "Jamf"
+    type: greenhouse
+    slug: jamf
+  - name: "StackAdapt"
+    type: greenhouse
+    slug: stackadapt
+  - name: "Telesat"
+    type: lever
+    slug: telesat
+  - name: "AbCellera"
+    type: greenhouse
+    slug: abcellera
+  - name: "Neo4j"
+    type: greenhouse
+    slug: neo4j
+  - name: "Starburst"
+    type: greenhouse
+    slug: starburst
+  - name: "Everlaw"
+    type: greenhouse
+    slug: everlaw
+  - name: "Clearwater Analytics"
+    type: greenhouse
+    slug: clearwater
+  - name: "Dremio"
+    type: greenhouse
+    slug: dremio
+  - name: "RBC"
+    type: workday
+    url: https://rbc.wd3.myworkdayjobs.com/RBCGLOBAL1
+    search: ["intern", "co-op", "new grad"]
+  - name: "TD"
+    type: workday
+    url: https://td.wd3.myworkdayjobs.com/TD_Bank_Careers
+    search: ["intern", "co-op", "new grad"]
+  - name: "BMO"
+    type: workday
+    url: https://bmo.wd3.myworkdayjobs.com/External
+    search: ["intern", "co-op", "new grad"]
+  - name: "Manulife"
+    type: workday
+    url: https://manulife.wd3.myworkdayjobs.com/MFCJH_Jobs
+    search: ["intern", "co-op", "new grad"]
+  - name: "CIBC"
+    type: workday
+    url: https://cibc.wd3.myworkdayjobs.com/search
+    search: ["intern", "co-op", "new grad"]
+  - name: "Desjardins"
+    type: workday
+    url: https://desjardins.wd10.myworkdayjobs.com/Desjardins
+    search: ["intern", "co-op", "new grad"]
+  - name: "Cisco"
+    type: workday
+    url: https://cisco.wd5.myworkdayjobs.com/Cisco_Careers
+    search: intern
+  - name: "Visa"
+    type: workday
+    url: https://visa.wd5.myworkdayjobs.com/Visa
+    search: intern
+  - name: "Nike"
+    type: workday
+    url: https://nike.wd1.myworkdayjobs.com/nke
+    search: intern
+  - name: "Fidelity"
+    type: workday
+    url: https://fmr.wd1.myworkdayjobs.com/FidelityCareers
+    search: intern
+  - name: "Zendesk"
+    type: workday
+    url: https://zendesk.wd1.myworkdayjobs.com/Zendesk
+    search: intern
+  - name: "Equifax"
+    type: workday
+    url: https://equifax.wd5.myworkdayjobs.com/External
+    search: intern
+  - name: "Moderna"
+    type: workday
+    url: https://modernatx.wd1.myworkdayjobs.com/M_tx
+    search: intern
+  - name: "Regeneron"
+    type: workday
+    url: https://regeneron.wd1.myworkdayjobs.com/Careers
+    search: intern
+  - name: "Amazon"
+    type: amazon
+    search: ["intern", "new grad", "university"]
+  - name: "Microsoft"
+    type: eightfold
+    host: apply.careers.microsoft.com
+    domain: microsoft.com
+    api: pcsx
+    search: ["intern", "new grad", "university"]
+  - name: "Netflix"
+    type: eightfold
+    host: explore.jobs.netflix.net
+    domain: netflix.com
+    search: ["intern", "new grad"]
+  - name: "Sun Life"
+    type: workday
+    url: https://sunlife.wd3.myworkdayjobs.com/Experienced-Jobs
+    search: ["intern", "co-op", "new grad"]
+  - name: "Wells Fargo"
+    type: workday
+    url: https://wf.wd1.myworkdayjobs.com/WellsFargoJobs
+    search: intern
+  - name: "Procter & Gamble"
+    type: workday
+    url: https://pg.wd5.myworkdayjobs.com/1000
+    search: intern

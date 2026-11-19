@@ -50,7 +50,11 @@ def _workday_posted(text: str | None) -> str | None:
 
 
 def _get(url: str, **kw) -> requests.Response:
-    r = requests.get(url, headers={"User-Agent": UA, "Accept": "application/json, text/html"}, timeout=TIMEOUT, **kw)
+    for attempt in range(4):  # back off when a host rate-limits us
+        r = requests.get(url, headers={"User-Agent": UA, "Accept": "application/json, text/html"}, timeout=TIMEOUT, **kw)
+        if r.status_code != 429:
+            break
+        time.sleep(3 * 2 ** attempt)
     r.raise_for_status()
     return r
 
@@ -128,26 +132,98 @@ def workday(c: dict) -> list[Job]:
     tenant, wd, site = m.groups()
     base = f"https://{tenant}.{wd}.myworkdayjobs.com"
     api = f"{base}/wday/cxs/{tenant}/{site}/jobs"
-    jobs, offset, limit = [], 0, 20
+    jobs, limit, seen = [], 20, set()
     sess = requests.Session()
     sess.headers.update({"User-Agent": UA, "Accept": "application/json", "Content-Type": "application/json"})
     sess.get(f"{base}/{site}", timeout=TIMEOUT)  # sets cookies some tenants require
-    while True:
-        body = {"appliedFacets": {}, "limit": limit, "offset": offset, "searchText": c.get("search", "")}
-        for attempt in range(4):  # Workday tenants share rate limits; back off on 429
-            r = sess.post(api, json=body, timeout=TIMEOUT)
-            if r.status_code != 429:
+    terms = c.get("search", "")
+    for term in ([terms] if isinstance(terms, str) else terms):
+        offset, total = 0, None
+        while True:
+            body = {"appliedFacets": {}, "limit": limit, "offset": offset, "searchText": term}
+            for attempt in range(5):  # Workday tenants share rate limits; back off on 429
+                r = sess.post(api, json=body, timeout=TIMEOUT)
+                if r.status_code != 429:
+                    break
+                time.sleep(5 * 2 ** attempt)
+            r.raise_for_status()
+            data = r.json()
+            if total is None:  # Workday only reports `total` on the first page
+                total = data.get("total", 0)
+            for j in data.get("jobPostings", []):
+                path = j.get("externalPath", "")
+                if path in seen:
+                    continue
+                seen.add(path)
+                jobs.append(Job(c["name"], j.get("title", ""), f"{base}/{site}{path}", j.get("locationsText", ""),
+                                _workday_posted(j.get("postedOn"))))
+            offset += limit
+            if offset >= total or not data.get("jobPostings"):
                 break
-            time.sleep(5 * 2 ** attempt)
-        r.raise_for_status()
-        data = r.json()
-        for j in data.get("jobPostings", []):
-            path = j.get("externalPath", "")
-            jobs.append(Job(c["name"], j.get("title", ""), f"{base}/{site}{path}", j.get("locationsText", ""),
-                            _workday_posted(j.get("postedOn"))))
-        offset += limit
-        if offset >= data.get("total", 0) or not data.get("jobPostings"):
-            break
+    return jobs
+
+
+def _terms(c: dict) -> list[str]:
+    t = c.get("search", "intern")
+    return [t] if isinstance(t, str) else list(t)
+
+
+def amazon(c: dict) -> list[Job]:
+    """amazon.jobs search API. `search` is a term or list of terms (the board has ~10k postings)."""
+    jobs, seen = [], set()
+    for term in _terms(c):
+        offset = 0
+        while offset < 400:
+            data = _get("https://www.amazon.jobs/en/search.json", params={
+                "base_query": term, "result_limit": 100, "offset": offset, "sort": "recent"}).json()
+            for j in data.get("jobs", []):
+                url = "https://www.amazon.jobs" + j["job_path"]
+                if url in seen:
+                    continue
+                seen.add(url)
+                try:
+                    posted = datetime.strptime(j.get("posted_date", ""), "%B %d, %Y").replace(tzinfo=timezone.utc)
+                    posted = posted.isoformat(timespec="seconds")
+                except ValueError:
+                    posted = None
+                jobs.append(Job(c["name"], j["title"], url, j.get("normalized_location", ""), posted))
+            offset += 100
+            if offset >= data.get("hits", 0):
+                break
+    return jobs
+
+
+def eightfold(c: dict) -> list[Job]:
+    """Eightfold-hosted careers sites (Netflix, Microsoft, ...). `host` + `domain` required;
+    `api: pcsx` selects the newer /api/pcsx/search shape, default is /api/apply/v2/jobs."""
+    host, domain, pcsx = c["host"], c["domain"], c.get("api") == "pcsx"
+    jobs, seen = [], set()
+    for term in _terms(c):
+        start = 0
+        while start < 300:
+            if pcsx:
+                data = _get(f"https://{host}/api/pcsx/search", params={
+                    "domain": domain, "query": term, "start": start, "sort_by": "timestamp"}).json().get("data", {})
+                items = data.get("positions", [])
+            else:
+                data = _get(f"https://{host}/api/apply/v2/jobs", params={
+                    "domain": domain, "query": term, "start": start, "num": 10}).json()
+                items = data.get("positions", [])
+            if not items:
+                break
+            for j in items:
+                if pcsx:
+                    url = f"https://{host}{j['positionUrl']}"
+                    loc, ts = "; ".join(j.get("standardizedLocations") or j.get("locations") or []), j.get("postedTs")
+                else:
+                    url = j.get("canonicalPositionUrl") or f"https://{host}/careers/job/{j['id']}"
+                    loc, ts = j.get("location", ""), j.get("t_create")
+                if url in seen:
+                    continue
+                seen.add(url)
+                posted = datetime.fromtimestamp(ts, tz=timezone.utc).isoformat(timespec="seconds") if ts else None
+                jobs.append(Job(c["name"], j.get("name", ""), url, loc, posted))
+            start += len(items)
     return jobs
 
 
@@ -179,6 +255,8 @@ FETCHERS = {
     "workable": workable,
     "smartrecruiters": smartrecruiters,
     "workday": workday,
+    "amazon": amazon,
+    "eightfold": eightfold,
     "html": html,
 }
 

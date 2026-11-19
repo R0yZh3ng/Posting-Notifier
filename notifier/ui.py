@@ -1,6 +1,7 @@
 """Local web UI: browse matches, track applications, and trigger crawls from the browser."""
 from __future__ import annotations
 
+import csv
 import io
 import json
 import sys
@@ -12,7 +13,6 @@ from pathlib import Path
 
 from .store import Store
 
-VALID_STATUS = {"saved", "applied", "hidden", None}
 
 
 class _Tee(io.TextIOBase):
@@ -107,14 +107,30 @@ def make_handler(cfg: dict, db: str, crawler: Crawler):
                 self.wfile.write(html)
             elif self.path == "/api/jobs":
                 store = Store(db)
-                st = store.statuses()
+                hidden, tracked = store.hidden_ids(), store.application_job_ids()
                 jobs = [
                     {"id": r["id"], "company": r["company"], "title": r["title"], "url": r["url"],
                      "location": r["location"], "posted": r["posted"], "first_seen": r["first_seen"],
-                     "status": st.get(r["id"])}
+                     "hidden": r["id"] in hidden, "app": tracked.get(r["id"])}
                     for r in store.matched_jobs()
                 ]
                 self._json({"jobs": jobs})
+            elif self.path == "/api/apps":
+                self._json({"apps": Store(db).applications(), "stages": list(Store.STAGES)})
+            elif self.path == "/api/apps.csv":
+                buf = io.StringIO()
+                w = csv.writer(buf)
+                cols = ["company", "title", "status", "applied_at", "follow_up", "location", "url", "contact", "salary", "notes"]
+                w.writerow(cols)
+                for a in Store(db).applications():
+                    w.writerow([a[c] or "" for c in cols])
+                body = buf.getvalue().encode()
+                self.send_response(200)
+                self.send_header("Content-Type", "text/csv; charset=utf-8")
+                self.send_header("Content-Disposition", 'attachment; filename="applications.csv"')
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
             elif self.path == "/api/crawl":
                 self._json(self._crawl_state())
             else:
@@ -132,11 +148,26 @@ def make_handler(cfg: dict, db: str, crawler: Crawler):
                 data = json.loads(self.rfile.read(n) or b"{}")
             except json.JSONDecodeError:
                 return self._json({"error": "bad json"}, 400)
-            if self.path == "/api/status":
-                status = data.get("status")
-                if status not in VALID_STATUS or not isinstance(data.get("id"), str):
+            store = Store(db)
+            if self.path == "/api/hide":
+                if not isinstance(data.get("id"), str):
                     return self._json({"error": "bad request"}, 400)
-                Store(db).set_status(data["id"], status)
+                store.set_hidden(data["id"], bool(data.get("hidden")))
+                self._json({"ok": True})
+            elif self.path == "/api/track":  # start/move tracking a crawled job
+                if data.get("status") not in Store.STAGES or not isinstance(data.get("id"), str):
+                    return self._json({"error": "bad request"}, 400)
+                app_id = store.track_job(data["id"], data["status"])
+                self._json({"ok": app_id is not None, "id": app_id})
+            elif self.path == "/api/apps/add":
+                self._json({"id": store.add_application(data)})
+            elif self.path == "/api/apps/update":
+                ok = isinstance(data.get("id"), int) and store.update_application(data["id"], data)
+                self._json({"ok": ok}, 200 if ok else 400)
+            elif self.path == "/api/apps/delete":
+                if not isinstance(data.get("id"), int):
+                    return self._json({"error": "bad request"}, 400)
+                store.delete_application(data["id"])
                 self._json({"ok": True})
             elif self.path == "/api/crawl":
                 self._json({"started": crawler.start()})

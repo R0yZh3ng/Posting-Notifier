@@ -5,65 +5,75 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Posting Notifier</title>
 <style>
-:root{--bg:#f6f7f9;--card:#fff;--fg:#1a1d23;--mut:#6b7280;--line:#e5e7eb;--acc:#2563eb;--accfg:#fff;
-  --saved:#d97706;--applied:#16a34a;--new:#dc2626}
+:root{--bg:#f6f7f9;--card:#fff;--fg:#1a1d23;--mut:#6b7280;--line:#e5e7eb;--acc:#2563eb;--accfg:#fff;--new:#dc2626;
+  --c-saved:#d97706;--c-applied:#2563eb;--c-oa:#7c3aed;--c-interview:#0891b2;--c-offer:#16a34a;--c-rejected:#dc2626;--c-withdrawn:#6b7280}
 @media (prefers-color-scheme:dark){:root{--bg:#0f1115;--card:#171a21;--fg:#e6e8ec;--mut:#8b93a1;--line:#272b35;--acc:#3b82f6}}
 *{box-sizing:border-box}
 body{margin:0;font:14px/1.45 system-ui,sans-serif;background:var(--bg);color:var(--fg)}
 header{position:sticky;top:0;z-index:5;background:var(--card);border-bottom:1px solid var(--line);padding:12px 20px}
 .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 h1{font-size:17px;margin:0 12px 0 0}
-input,select,button{font:inherit;color:inherit;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:7px 10px}
+input,select,textarea,button{font:inherit;color:inherit;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:7px 10px}
 input[type=search]{flex:1;min-width:200px}
 button{cursor:pointer}button:hover{border-color:var(--acc)}
 button.primary{background:var(--acc);color:var(--accfg);border-color:var(--acc)}
 button:disabled{opacity:.6;cursor:default}
-.tabs button.on{background:var(--acc);color:var(--accfg);border-color:var(--acc)}
+button.on{background:var(--acc);color:var(--accfg);border-color:var(--acc)}
 main{max-width:1000px;margin:0 auto;padding:16px 20px 80px}
+main.wide{max-width:none}
 .count{color:var(--mut);margin:4px 0 12px}
-.job{display:flex;gap:12px;align-items:flex-start;background:var(--card);border:1px solid var(--line);
-  border-radius:10px;padding:12px 14px;margin-bottom:8px}
-.job.applied{border-left:4px solid var(--applied)}.job.saved{border-left:4px solid var(--saved)}
+.job{display:flex;gap:12px;align-items:flex-start;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:8px}
 .body{flex:1;min-width:0}
 .title{font-weight:600;color:var(--fg);text-decoration:none}.title:hover{color:var(--acc);text-decoration:underline}
 .meta{color:var(--mut);margin-top:2px;font-size:13px}
 .badge{display:inline-block;font-size:11px;font-weight:700;color:#fff;background:var(--new);border-radius:99px;padding:1px 7px;margin-left:6px;vertical-align:1px}
+.chip{display:inline-block;font-size:11px;font-weight:700;color:#fff;border-radius:99px;padding:1px 8px;margin-left:6px;text-transform:uppercase;letter-spacing:.3px}
 .acts{display:flex;gap:6px;flex-shrink:0}
 .acts button{padding:4px 9px;font-size:12px}
-.acts button.on.saved{background:var(--saved);border-color:var(--saved);color:#fff}
-.acts button.on.applied{background:var(--applied);border-color:var(--applied);color:#fff}
 .empty{text-align:center;color:var(--mut);padding:50px 0}
-#panel{position:fixed;right:16px;bottom:16px;width:min(460px,calc(100vw - 32px));background:var(--card);
-  border:1px solid var(--line);border-radius:12px;box-shadow:0 8px 30px #0004;display:none}
+/* board */
+.board{display:flex;gap:12px;overflow-x:auto;align-items:flex-start;padding-bottom:12px}
+.col{flex:0 0 250px;background:var(--bg);border:1px solid var(--line);border-radius:10px;min-height:120px}
+.col.over{outline:2px dashed var(--acc)}
+.col h3{margin:0;padding:10px 12px;font-size:12px;text-transform:uppercase;letter-spacing:.5px;display:flex;justify-content:space-between;border-bottom:3px solid var(--cc)}
+.col .cards{padding:8px;display:flex;flex-direction:column;gap:8px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:9px 10px;cursor:grab}
+.card:hover{border-color:var(--acc)}
+.card b{display:block}.card .t{font-size:13px}.card .m{font-size:12px;color:var(--mut);margin-top:3px}
+.due{color:var(--new)!important;font-weight:600}
+/* modal */
+#modal{position:fixed;inset:0;background:#0007;display:none;align-items:center;justify-content:center;z-index:20;padding:16px}
+#modal .box{background:var(--card);border-radius:12px;width:min(560px,100%);max-height:92vh;overflow:auto;padding:18px}
+#modal label{display:block;font-size:12px;color:var(--mut);margin:10px 0 3px}
+#modal input,#modal select,#modal textarea{width:100%}
+#modal textarea{min-height:110px;resize:vertical}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+/* stats */
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:18px}
+.tile{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.tile .n{font-size:26px;font-weight:700}.tile .l{color:var(--mut);font-size:12px}
+.bar{display:flex;align-items:center;gap:10px;margin:6px 0}
+.bar .lab{width:90px;font-size:12px;text-transform:uppercase;color:var(--mut)}
+.bar .fill{height:18px;border-radius:4px;min-width:2px}
+#panel{position:fixed;right:16px;bottom:16px;width:min(460px,calc(100vw - 32px));background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:0 8px 30px #0004;display:none;z-index:10}
 #panel header{position:static;border:0;padding:10px 14px;display:flex;justify-content:space-between}
 #log{margin:0;padding:0 14px 12px;max-height:240px;overflow:auto;font:12px/1.5 ui-monospace,monospace;white-space:pre-wrap;color:var(--mut)}
 label.chk{display:flex;gap:5px;align-items:center;color:var(--mut)}
 .pill{color:var(--mut);font-size:13px}
+.hide{display:none!important}
 @media(max-width:640px){.job{flex-direction:column}}
 </style>
 </head>
 <body>
 <header>
-  <div class="row">
-    <h1>Posting Notifier</h1>
-    <input id="q" type="search" placeholder="Search title, company, location…">
-    <select id="when">
-      <option value="0">Any time</option>
-      <option value="24">Last 24 hours</option>
-      <option value="72">Last 3 days</option>
-      <option value="168">Last 7 days</option>
-      <option value="720">Last 30 days</option>
-    </select>
-    <select id="company"><option value="">All companies</option></select>
-    <select id="sort"><option value="posted">Newest first</option><option value="company">Company A–Z</option></select>
-  </div>
-  <div class="row" style="margin-top:10px;justify-content:space-between">
-    <div class="row tabs" id="tabs">
-      <button data-t="open" class="on">Open</button>
-      <button data-t="saved">Saved</button>
-      <button data-t="applied">Applied</button>
-      <button data-t="hidden">Hidden</button>
-      <button data-t="all">All</button>
+  <div class="row" style="justify-content:space-between">
+    <div class="row">
+      <h1>Posting Notifier</h1>
+      <div class="row" id="views">
+        <button data-v="jobs" class="on">Jobs</button>
+        <button data-v="tracker">Tracker <span id="appcount"></span></button>
+        <button data-v="stats">Stats</button>
+      </div>
     </div>
     <div class="row">
       <span class="pill" id="crawlpill"></span>
@@ -72,21 +82,46 @@ label.chk{display:flex;gap:5px;align-items:center;color:var(--mut)}
       <button id="logbtn">Log</button>
     </div>
   </div>
+  <div class="row" id="jobfilters" style="margin-top:10px">
+    <input id="q" type="search" placeholder="Search title, company, location…">
+    <select id="when">
+      <option value="0">Any time</option><option value="24">Last 24 hours</option><option value="72">Last 3 days</option>
+      <option value="168">Last 7 days</option><option value="720">Last 30 days</option>
+    </select>
+    <select id="region">
+      <option value="">Anywhere</option><option value="canada">Canada</option><option value="vancouver">Vancouver / BC</option>
+      <option value="toronto">Toronto / Ontario</option><option value="remote">Remote</option>
+    </select>
+    <select id="company"><option value="">All companies</option></select>
+    <select id="sort"><option value="posted">Newest first</option><option value="company">Company A–Z</option></select>
+    <select id="show">
+      <option value="open">Not tracked / not hidden</option><option value="all">Everything</option><option value="hidden">Hidden only</option>
+    </select>
+  </div>
+  <div class="row hide" id="trackerbar" style="margin-top:10px">
+    <input id="aq" type="search" placeholder="Search applications…">
+    <button id="addapp" class="primary">+ Add application</button>
+    <a href="/api/apps.csv"><button>Export CSV</button></a>
+  </div>
 </header>
-<main>
-  <div class="count" id="count"></div>
-  <div id="list"></div>
-</main>
-<div id="panel">
-  <header><b>Crawl log</b><button onclick="panel.style.display='none'">✕</button></header>
-  <pre id="log"></pre>
-</div>
+
+<main id="jobsview"><div class="count" id="count"></div><div id="list"></div></main>
+<main id="trackerview" class="wide hide"><div class="board" id="board"></div></main>
+<main id="statsview" class="hide"></main>
+
+<div id="modal"><div class="box" id="mbox"></div></div>
+<div id="panel"><header><b>Crawl log</b><button onclick="panel.style.display='none'">✕</button></header><pre id="log"></pre></div>
+
 <script>
 const $ = id => document.getElementById(id);
 const panel = $('panel');
-let jobs = [], tab = 'open', wasRunning = false;
+const STAGES = ['saved','applied','oa','interview','offer','rejected','withdrawn'];
+const LABEL = {saved:'Saved',applied:'Applied',oa:'Online assessment',interview:'Interview',offer:'Offer',rejected:'Rejected',withdrawn:'Withdrawn'};
+let jobs = [], apps = [], view = 'jobs', wasRunning = false;
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const post = (u, d) => fetch(u, {method:'POST', body: JSON.stringify(d)}).then(r => r.json());
+const today = () => new Date().toISOString().slice(0,10);
 function ago(iso){
   const s = (Date.now() - new Date(iso)) / 1000;
   if (isNaN(s)) return '';
@@ -95,69 +130,168 @@ function ago(iso){
   if (s < 86400*30) return Math.round(s/86400) + 'd ago';
   return iso.slice(0,10);
 }
+const chip = st => `<span class="chip" style="background:var(--c-${st})">${LABEL[st]}</span>`;
 
-async function load(){
+/* ---------- data ---------- */
+async function loadJobs(){
   jobs = (await (await fetch('/api/jobs')).json()).jobs;
   const sel = $('company'), cur = sel.value;
   const names = [...new Set(jobs.map(j => j.company))].sort((a,b) => a.localeCompare(b));
-  sel.innerHTML = '<option value="">All companies ('+names.length+')</option>' +
-    names.map(n => `<option>${esc(n)}</option>`).join('');
+  sel.innerHTML = '<option value="">All companies ('+names.length+')</option>' + names.map(n => `<option>${esc(n)}</option>`).join('');
   sel.value = names.includes(cur) ? cur : '';
-  render();
+  renderJobs();
 }
+async function loadApps(){
+  apps = (await (await fetch('/api/apps')).json()).apps;
+  $('appcount').textContent = apps.length ? `(${apps.length})` : '';
+  if (view === 'tracker') renderBoard();
+  if (view === 'stats') renderStats();
+}
+const reloadAll = () => Promise.all([loadJobs(), loadApps()]);
 
-function render(){
-  const q = $('q').value.trim().toLowerCase(), hrs = +$('when').value, co = $('company').value;
+/* ---------- jobs view ---------- */
+const REGION = {
+  canada: /canada|\bON\b|\bBC\b|\bAB\b|\bQC\b|ontario|british columbia|alberta|quebec|toronto|vancouver|montr[eé]al|ottawa|waterloo|calgary|kitchener|mississauga|victoria|edmonton|halifax|winnipeg/i,
+  vancouver: /vancouver|burnaby|richmond, b|british columbia|\bBC\b|victoria|kelowna/i,
+  toronto: /toronto|mississauga|ontario|\bON\b|waterloo|kitchener|markham|ottawa|hamilton/i,
+  remote: /remote/i,
+};
+function renderJobs(){
+  const q = $('q').value.trim().toLowerCase(), hrs = +$('when').value, co = $('company').value, rg = $('region').value, show = $('show').value;
   const cutoff = hrs ? Date.now() - hrs*3600e3 : 0;
   let rows = jobs.filter(j => {
-    const st = j.status || '';
-    if (tab === 'open' && st === 'hidden') return false;
-    if (tab !== 'open' && tab !== 'all' && st !== tab) return false;
+    if (show === 'open' && (j.hidden || j.app)) return false;
+    if (show === 'hidden' && !j.hidden) return false;
     if (co && j.company !== co) return false;
     if (cutoff && new Date(j.posted) < cutoff) return false;
+    if (rg && !REGION[rg].test(j.location + ' ' + j.title)) return false;
     if (q && !(j.title + ' ' + j.company + ' ' + j.location).toLowerCase().includes(q)) return false;
     return true;
   });
-  if ($('sort').value === 'company')
-    rows.sort((a,b) => a.company.localeCompare(b.company) || a.title.localeCompare(b.title));
+  if ($('sort').value === 'company') rows.sort((a,b) => a.company.localeCompare(b.company) || a.title.localeCompare(b.title));
   $('count').textContent = `${rows.length} of ${jobs.length} matching jobs`;
   const shown = rows.slice(0, 300);
   $('list').innerHTML = shown.length ? shown.map(j => {
-    const fresh = Date.now() - new Date(j.posted) < 86400e3;
-    const st = j.status || '';
-    return `<div class="job ${st}">
+    const fresh = Date.now() - new Date(j.posted) < 86400e3, st = j.app?.status;
+    return `<div class="job">
       <div class="body">
-        <a class="title" href="${esc(j.url)}" target="_blank" rel="noopener">${esc(j.title)}</a>${fresh ? '<span class="badge">NEW</span>' : ''}
+        <a class="title" href="${esc(j.url)}" target="_blank" rel="noopener">${esc(j.title)}</a>${fresh ? '<span class="badge">NEW</span>' : ''}${st ? chip(st) : ''}
         <div class="meta"><b>${esc(j.company)}</b>${j.location ? ' · ' + esc(j.location) : ''} · posted ${ago(j.posted)}</div>
       </div>
       <div class="acts">
-        <button class="saved ${st==='saved'?'on':''}" data-id="${j.id}" data-s="saved">★ Save</button>
-        <button class="applied ${st==='applied'?'on':''}" data-id="${j.id}" data-s="applied">✓ Applied</button>
-        <button data-id="${j.id}" data-s="hidden">${st==='hidden'?'Unhide':'Hide'}</button>
+        ${st ? `<button data-open="${j.app.id}">Open in tracker</button>` : `
+        <button data-id="${j.id}" data-track="saved">★ Save</button>
+        <button data-id="${j.id}" data-track="applied">✓ Applied</button>`}
+        <button data-id="${j.id}" data-hide="${j.hidden ? 0 : 1}">${j.hidden ? 'Unhide' : 'Hide'}</button>
       </div></div>`;
   }).join('') + (rows.length > shown.length ? `<div class="empty">Showing first ${shown.length}. Narrow the filters to see more.</div>` : '')
   : '<div class="empty">No jobs match these filters.</div>';
 }
-
 $('list').onclick = async e => {
-  const b = e.target.closest('button[data-id]'); if (!b) return;
-  const j = jobs.find(x => x.id === b.dataset.id), s = b.dataset.s;
-  j.status = j.status === s ? null : s;
-  render();
-  fetch('/api/status', {method:'POST', body: JSON.stringify({id: j.id, status: j.status})});
-};
-$('tabs').onclick = e => {
   const b = e.target.closest('button'); if (!b) return;
-  tab = b.dataset.t;
-  document.querySelectorAll('#tabs button').forEach(x => x.classList.toggle('on', x === b));
-  render();
+  if (b.dataset.open) { setView('tracker'); return openModal(+b.dataset.open); }
+  if (b.dataset.track) await post('/api/track', {id: b.dataset.id, status: b.dataset.track});
+  if (b.dataset.hide !== undefined) await post('/api/hide', {id: b.dataset.id, hidden: b.dataset.hide === '1'});
+  reloadAll();
 };
-['q','when','company','sort'].forEach(id => $(id).addEventListener('input', render));
+['q','when','company','sort','region','show'].forEach(id => $(id).addEventListener('input', renderJobs));
+
+/* ---------- tracker board ---------- */
+function renderBoard(){
+  const q = $('aq').value.trim().toLowerCase();
+  const list = apps.filter(a => !q || (a.company + ' ' + a.title + ' ' + a.notes + ' ' + a.contact).toLowerCase().includes(q));
+  $('board').innerHTML = STAGES.map(st => {
+    const items = list.filter(a => a.status === st);
+    return `<div class="col" data-stage="${st}" style="--cc:var(--c-${st})">
+      <h3><span>${LABEL[st]}</span><span>${items.length}</span></h3>
+      <div class="cards">${items.map(a => {
+        const due = a.follow_up && a.follow_up <= today();
+        return `<div class="card" draggable="true" data-id="${a.id}">
+          <b>${esc(a.company)}</b><div class="t">${esc(a.title)}</div>
+          <div class="m ${due ? 'due' : ''}">${a.follow_up ? (due ? '⏰ follow up ' : 'follow up ') + a.follow_up : (a.applied_at ? 'applied ' + a.applied_at : esc(a.location))}</div>
+        </div>`;}).join('')}</div></div>`;
+  }).join('');
+}
+$('aq').addEventListener('input', renderBoard);
+const board = $('board');
+board.addEventListener('dragstart', e => { const c = e.target.closest('.card'); if (c) e.dataTransfer.setData('text/plain', c.dataset.id); });
+board.addEventListener('dragover', e => { const c = e.target.closest('.col'); if (c) { e.preventDefault(); c.classList.add('over'); } });
+board.addEventListener('dragleave', e => { const c = e.target.closest('.col'); if (c) c.classList.remove('over'); });
+board.addEventListener('drop', async e => {
+  const col = e.target.closest('.col'); if (!col) return;
+  e.preventDefault(); col.classList.remove('over');
+  const id = +e.dataTransfer.getData('text/plain');
+  await post('/api/apps/update', {id, status: col.dataset.stage});
+  reloadAll();
+});
+board.addEventListener('click', e => { const c = e.target.closest('.card'); if (c) openModal(+c.dataset.id); });
+$('addapp').onclick = () => openModal(null);
+
+/* ---------- modal ---------- */
+function openModal(id){
+  const a = id ? apps.find(x => x.id === id) : {status:'saved'};
+  if (id && !a) return;
+  const f = (k, label, type='text') => `<div><label>${label}</label><input type="${type}" data-k="${k}" value="${esc(a[k] || '')}"></div>`;
+  $('mbox').innerHTML = `<h3 style="margin:0 0 4px">${id ? 'Edit application' : 'Add application'}</h3>
+    <div class="g2">${f('company','Company')}${f('title','Role')}</div>
+    <div class="g2"><div><label>Stage</label><select data-k="status">${STAGES.map(s => `<option value="${s}" ${a.status===s?'selected':''}>${LABEL[s]}</option>`).join('')}</select></div>${f('location','Location')}</div>
+    <div class="g2">${f('applied_at','Date applied','date')}${f('follow_up','Follow up on','date')}</div>
+    <div class="g2">${f('contact','Contact / recruiter')}${f('salary','Salary / comp')}</div>
+    ${f('url','Posting URL')}
+    <label>Notes</label><textarea data-k="notes">${esc(a.notes || '')}</textarea>
+    <div class="row" style="margin-top:14px;justify-content:space-between">
+      <div class="row"><button class="primary" id="msave">Save</button><button id="mcancel">Cancel</button>${a.url ? `<a href="${esc(a.url)}" target="_blank" rel="noopener"><button>Open posting ↗</button></a>` : ''}</div>
+      ${id ? '<button id="mdel" style="color:var(--new)">Delete</button>' : ''}
+    </div>`;
+  $('modal').style.display = 'flex';
+  const data = () => Object.fromEntries([...$('mbox').querySelectorAll('[data-k]')].map(el => [el.dataset.k, el.value]));
+  $('mcancel').onclick = closeModal;
+  $('msave').onclick = async () => { await post(id ? '/api/apps/update' : '/api/apps/add', id ? {id, ...data()} : data()); closeModal(); reloadAll(); };
+  if (id) $('mdel').onclick = async () => { if (confirm('Delete this application and its notes?')) { await post('/api/apps/delete', {id}); closeModal(); reloadAll(); } };
+}
+const closeModal = () => $('modal').style.display = 'none';
+$('modal').addEventListener('mousedown', e => { if (e.target === $('modal')) closeModal(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+/* ---------- stats ---------- */
+function renderStats(){
+  const n = st => apps.filter(a => a.status === st).length;
+  const sent = apps.filter(a => a.status !== 'saved').length;
+  const responded = apps.filter(a => ['oa','interview','offer','rejected'].includes(a.status)).length;
+  const active = apps.filter(a => ['applied','oa','interview'].includes(a.status)).length;
+  const due = apps.filter(a => a.follow_up && a.follow_up <= today() && !['rejected','withdrawn','offer'].includes(a.status));
+  const max = Math.max(1, ...STAGES.map(n));
+  const week = apps.filter(a => a.applied_at && (Date.now() - new Date(a.applied_at)) < 7*86400e3).length;
+  $('statsview').innerHTML = `
+    <div class="tiles">
+      <div class="tile"><div class="n">${sent}</div><div class="l">Applications sent</div></div>
+      <div class="tile"><div class="n">${week}</div><div class="l">Sent in last 7 days</div></div>
+      <div class="tile"><div class="n">${active}</div><div class="l">Still active</div></div>
+      <div class="tile"><div class="n">${sent ? Math.round(100*responded/sent) : 0}%</div><div class="l">Response rate</div></div>
+      <div class="tile"><div class="n">${n('interview')}</div><div class="l">Interviewing</div></div>
+      <div class="tile"><div class="n">${n('offer')}</div><div class="l">Offers</div></div>
+    </div>
+    <h3>Pipeline</h3>
+    ${STAGES.map(s => `<div class="bar"><div class="lab">${LABEL[s]}</div><div class="fill" style="width:${100*n(s)/max*0.6}%;background:var(--c-${s})"></div><b>${n(s)}</b></div>`).join('')}
+    <h3>Follow-ups due (${due.length})</h3>
+    ${due.length ? due.map(a => `<div class="job"><div class="body"><b>${esc(a.company)}</b> — ${esc(a.title)}<div class="meta due">due ${a.follow_up} · ${LABEL[a.status]}</div></div><div class="acts"><button data-open="${a.id}">Open</button></div></div>`).join('') : '<div class="meta">Nothing due.</div>'}`;
+}
+$('statsview').onclick = e => { const b = e.target.closest('[data-open]'); if (b) { setView('tracker'); openModal(+b.dataset.open); } };
+
+/* ---------- navigation & crawl ---------- */
+function setView(v){
+  view = v;
+  document.querySelectorAll('#views button').forEach(b => b.classList.toggle('on', b.dataset.v === v));
+  $('jobsview').classList.toggle('hide', v !== 'jobs'); $('jobfilters').classList.toggle('hide', v !== 'jobs');
+  $('trackerview').classList.toggle('hide', v !== 'tracker'); $('trackerbar').classList.toggle('hide', v !== 'tracker');
+  $('statsview').classList.toggle('hide', v !== 'stats');
+  if (v === 'tracker') renderBoard(); if (v === 'stats') renderStats();
+}
+$('views').onclick = e => { const b = e.target.closest('button'); if (b) setView(b.dataset.v); };
 
 $('crawlbtn').onclick = async () => { panel.style.display = 'block'; await fetch('/api/crawl', {method:'POST', body:'{}'}); poll(); };
 $('logbtn').onclick = () => panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
-$('auto').onchange = e => fetch('/api/auto', {method:'POST', body: JSON.stringify({auto: e.target.checked})});
-
+$('auto').onchange = e => post('/api/auto', {auto: e.target.checked});
 async function poll(){
   const s = await (await fetch('/api/crawl')).json();
   $('crawlbtn').disabled = s.running;
@@ -169,10 +303,10 @@ async function poll(){
   let pill = s.running ? 'crawling…' : s.last_run ? `last crawl ${ago(s.last_run)}` + (s.last_new != null ? ` · ${s.last_new} new` : '') : '';
   if (s.auto && s.next_in != null && !s.running) pill += ` · next in ${Math.ceil(s.next_in/60)}m`;
   $('crawlpill').textContent = pill;
-  if (wasRunning && !s.running) load();
+  if (wasRunning && !s.running) loadJobs();
   wasRunning = s.running;
 }
-load(); poll(); setInterval(poll, 1500);
+reloadAll(); poll(); setInterval(poll, 1500);
 </script>
 </body>
 </html>

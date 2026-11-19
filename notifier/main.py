@@ -102,6 +102,9 @@ def main(argv: list[str] | None = None) -> None:
     ls = sub.add_parser("list", help="print matching jobs")
     ls.add_argument("--since", help="only jobs posted within this window, e.g. 24h or 3d")
     sub.add_parser("rebuild", help="regenerate jobs.md / jobs.html from the database")
+    u = sub.add_parser("ui", help="open the web interface")
+    u.add_argument("--port", type=int, default=8765)
+    u.add_argument("--no-browser", action="store_true", help="don't open a browser tab automatically")
     for s in sub.choices.values():
         s.add_argument("--notify-first-run", action="store_true",
                        help="notify for every existing match on a company's first crawl instead of staying quiet")
@@ -111,7 +114,10 @@ def main(argv: list[str] | None = None) -> None:
     store = Store(args.db)
     quiet = not args.notify_first_run
 
-    if args.cmd == "list":
+    if args.cmd == "ui":
+        from . import ui
+        ui.serve(cfg, args.db, lambda c, s, q: run_once(c, s, q), args.port, not args.no_browser)
+    elif args.cmd == "list":
         cmd_list(cfg, store, args.since)
     elif args.cmd == "rebuild":
         report.write_all(cfg.get("output", {}), store)

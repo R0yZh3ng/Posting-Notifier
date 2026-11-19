@@ -26,7 +26,17 @@ Edit `config.yaml`:
 
 Prefer `config.local.yaml` (gitignored) if you put a webhook URL in there; it overrides `config.yaml`.
 
-## Run
+## Web UI
+
+```sh
+uv run notifier ui            # opens http://127.0.0.1:8765
+```
+
+Browse every match with search, company / time-window filters, and Save / Applied / Hide
+tracking (stored in `jobs.db`). **Crawl now** runs a crawl with a live log, and **auto-crawl**
+repeats it every `poll_interval_minutes` while the UI is open. Use `--port` or `--no-browser` as needed.
+
+## Run (terminal)
 
 ```sh
 uv run notifier once          # crawl everything one time

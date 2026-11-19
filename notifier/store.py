@@ -20,6 +20,10 @@ CREATE TABLE IF NOT EXISTS companies (
     name       TEXT PRIMARY KEY,
     first_crawl TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS job_status (
+    job_id TEXT PRIMARY KEY,
+    status TEXT NOT NULL
+);
 """
 
 
@@ -72,6 +76,20 @@ class Store:
             sql += " AND COALESCE(posted_at, first_seen) >= ?"
             args = (cutoff,)
         return self.conn.execute(sql + " ORDER BY posted DESC, company, title", args).fetchall()
+
+    def statuses(self) -> dict[str, str]:
+        return {r["job_id"]: r["status"] for r in self.conn.execute("SELECT job_id, status FROM job_status")}
+
+    def set_status(self, job_id: str, status: str | None) -> None:
+        if status:
+            self.conn.execute(
+                "INSERT INTO job_status (job_id, status) VALUES (?, ?) "
+                "ON CONFLICT(job_id) DO UPDATE SET status = excluded.status",
+                (job_id, status),
+            )
+        else:
+            self.conn.execute("DELETE FROM job_status WHERE job_id = ?", (job_id,))
+        self.conn.commit()
 
     def count(self) -> int:
         return self.conn.execute("SELECT COUNT(*) FROM jobs").fetchone()[0]

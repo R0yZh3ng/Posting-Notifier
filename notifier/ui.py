@@ -111,7 +111,8 @@ def make_handler(cfg: dict, db: str, crawler: Crawler):
                 jobs = [
                     {"id": r["id"], "company": r["company"], "title": r["title"], "url": r["url"],
                      "location": r["location"], "posted": r["posted"], "first_seen": r["first_seen"],
-                     "hidden": r["id"] in hidden, "app": tracked.get(r["id"])}
+                     "hidden": r["id"] in hidden, "app": tracked.get(r["id"]),
+                     "reqs": json.loads(r["reqs"]) if r["reqs"] else None}
                     for r in store.matched_jobs()
                 ]
                 self._json({"jobs": jobs})

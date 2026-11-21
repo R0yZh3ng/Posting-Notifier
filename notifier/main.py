@@ -10,7 +10,9 @@ from datetime import datetime
 
 import yaml
 
-from . import notify, report, sources
+import json
+
+from . import notify, report, reqs, sources
 from .matcher import Matcher
 from .store import Store
 
@@ -57,7 +59,8 @@ def run_once(cfg: dict, store: Store, quiet_first_run: bool, workers: int = 8) -
             new_here = 0
             for job in jobs:
                 matched = matcher.matches(job)
-                if store.upsert(job, matched) and matched:
+                job_reqs = json.dumps(reqs.analyze(job.title, job.description)) if matched else None
+                if store.upsert(job, matched, job_reqs) and matched:
                     new_here += 1
                     if quiet:
                         continue
@@ -70,6 +73,7 @@ def run_once(cfg: dict, store: Store, quiet_first_run: bool, workers: int = 8) -
             else:
                 print(f"  {c['name']}: {len(jobs)} postings, {new_here} new matches")
             new_matches += new_here
+    enrich(store, limit=300)
     notify.email_digest(cfg.get("notify", {}), fresh)
     notify.ntfy_digest(cfg.get("notify", {}), fresh)
     report.write_all(cfg.get("output", {}), store)
@@ -78,6 +82,32 @@ def run_once(cfg: dict, store: Store, quiet_first_run: bool, workers: int = 8) -
         print(f"First crawl of {len(baselined)} new compan{'y' if len(baselined)==1 else 'ies'}: "
               f"recorded {n} existing matches without notifying.")
     return new_matches
+
+
+def enrich(store: Store, limit: int | None = None, workers: int = 4) -> int:
+    """Read full descriptions for matched jobs whose board doesn't include them in its list API (Workday)."""
+    todo = [r for r in store.needing_details() if ".myworkdayjobs.com/" in r["url"]]
+    if limit:
+        todo = todo[:limit]
+    if not todo:
+        return 0
+
+    def work(r):
+        try:
+            text = sources.workday_detail(r["url"])
+        except Exception:
+            return r["id"], None
+        return r["id"], json.dumps(reqs.analyze(r["title"], text)) if text else None
+
+    done = 0
+    with cf.ThreadPoolExecutor(max_workers=workers) as ex:
+        for job_id, out in ex.map(work, todo):
+            if out:
+                store.set_reqs(job_id, out)
+                done += 1
+    store.commit()
+    print(f"Read full descriptions for {done}/{len(todo)} Workday job(s).")
+    return done
 
 
 def summary(new: int, store: Store, cfg: dict) -> str:
@@ -117,6 +147,7 @@ def main(argv: list[str] | None = None) -> None:
     ls = sub.add_parser("list", help="print matching jobs")
     ls.add_argument("--since", help="only jobs posted within this window, e.g. 24h or 3d")
     sub.add_parser("test-email", help="send a sample digest email to check your SMTP settings")
+    sub.add_parser("enrich", help="read descriptions of all matching jobs to detect citizenship/degree requirements")
     sub.add_parser("rebuild", help="regenerate jobs.md / jobs.html from the database")
     u = sub.add_parser("ui", help="open the web interface")
     u.add_argument("--port", type=int, default=8765)
@@ -139,6 +170,8 @@ def main(argv: list[str] | None = None) -> None:
         if not notify._email_cfg(cfg.get("notify", {})):
             raise SystemExit("Set notify.email.enabled: true plus smtp_host, username, password and to.")
         notify.email_digest(cfg.get("notify", {}), sample)
+    elif args.cmd == "enrich":
+        enrich(store)
     elif args.cmd == "list":
         cmd_list(cfg, store, args.since)
     elif args.cmd == "rebuild":

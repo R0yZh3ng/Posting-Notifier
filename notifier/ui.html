@@ -31,6 +31,21 @@ main.wide{max-width:none}
 .acts{display:flex;gap:6px;flex-shrink:0}
 .acts button{padding:4px 9px;font-size:12px}
 .empty{text-align:center;color:var(--mut);padding:50px 0}
+/* eligibility */
+.tag{display:inline-block;font-size:11px;font-weight:600;border-radius:6px;padding:1px 7px;margin:4px 6px 0 0;background:#fee2e2;color:#991b1b;cursor:help}
+.tag.warn{background:#fef3c7;color:#92400e}.tag.dim{background:var(--bg);color:var(--mut);border:1px solid var(--line)}
+@media (prefers-color-scheme:dark){.tag{background:#450a0a;color:#fecaca}.tag.warn{background:#451a03;color:#fde68a}}
+#elig{position:fixed;right:20px;top:112px;max-height:calc(100vh - 130px);overflow:auto;width:min(360px,calc(100vw - 32px));background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:0 8px 30px #0004;padding:14px;display:none;z-index:8}
+#elig label{display:flex;gap:8px;align-items:flex-start;margin:8px 0;font-size:13px}
+#elig select{width:100%;margin-top:4px}
+#elig small{color:var(--mut);display:block;margin-top:10px}
+.switch{display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none}
+.switch input{position:absolute;opacity:0;pointer-events:none}
+.switch .knob{width:36px;height:20px;border-radius:99px;background:var(--line);position:relative;transition:.15s;flex-shrink:0}
+.switch .knob::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;transition:.15s;box-shadow:0 1px 3px #0005}
+.switch input:checked + .knob{background:var(--acc)}
+.switch input:checked + .knob::after{left:18px}
+.switch input:focus-visible + .knob{outline:2px solid var(--acc);outline-offset:2px}
 /* board */
 .board{display:flex;gap:12px;overflow-x:auto;align-items:flex-start;padding-bottom:12px}
 .col{flex:0 0 250px;background:var(--bg);border:1px solid var(--line);border-radius:10px;min-height:120px}
@@ -94,6 +109,8 @@ label.chk{display:flex;gap:5px;align-items:center;color:var(--mut)}
     </select>
     <select id="company"><option value="">All companies</option></select>
     <select id="sort"><option value="posted">Newest first</option><option value="company">Company A–Z</option></select>
+    <label class="switch" title="Hide jobs that need citizenship, a degree, or sponsorship you don't have"><input type="checkbox" id="eligonly"><span class="knob"></span> Eligible only <span class="pill" id="eligcount"></span></label>
+    <button id="eligbtn">⚙ My eligibility</button>
     <select id="show">
       <option value="open">Not tracked / not hidden</option><option value="all">Everything</option><option value="hidden">Hidden only</option>
     </select>
@@ -105,6 +122,14 @@ label.chk{display:flex;gap:5px;align-items:center;color:var(--mut)}
   </div>
 </header>
 
+<div id="elig">
+  <b>My eligibility</b>
+  <label><input type="checkbox" id="p_us"> <span>I'm a US citizen or permanent resident<br><small style="margin:0">Unchecked hides jobs that require US citizenship, a security clearance, or ITAR / export-control status.</small></span></label>
+  <label><input type="checkbox" id="p_spons"> <span>I need visa sponsorship<br><small style="margin:0">Checked hides jobs that say they won't sponsor.</small></span></label>
+  <label style="display:block">Highest degree I'm working toward / hold
+    <select id="p_deg"><option value="bachelors">Bachelor's (undergrad)</option><option value="masters">Master's</option><option value="phd">PhD</option></select></label>
+  <small>Jobs we couldn't read the full text of are never hidden; they get a grey "unchecked" tag. Hover any tag to see the sentence it came from.</small>
+</div>
 <main id="jobsview"><div class="count" id="count"></div><div id="list"></div></main>
 <main id="trackerview" class="wide hide"><div class="board" id="board"></div></main>
 <main id="statsview" class="hide"></main>
@@ -149,6 +174,40 @@ async function loadApps(){
 }
 const reloadAll = () => Promise.all([loadJobs(), loadApps()]);
 
+/* ---------- eligibility ---------- */
+const TAGS = {
+  us_citizen:  ['US citizens only', ''],
+  clearance:   ['Security clearance', ''],
+  no_sponsor:  ['No visa sponsorship', 'warn'],
+  masters_req: ["Master's+", ''],
+  phd_req:     ['PhD', ''],
+};
+let profile = {us: false, spons: false, deg: 'bachelors', only: false};
+try { Object.assign(profile, JSON.parse(localStorage.getItem('profile') || '{}'), {only: false}); } catch (e) {}
+function saveProfile(){ try { const {only, ...keep} = profile; localStorage.setItem('profile', JSON.stringify(keep)); } catch (e) {} }  // the on/off switch is deliberately not remembered
+function blockers(j){  // tags that rule this job out for the current profile
+  const r = j.reqs; if (!r) return [];
+  const out = [];
+  if (!profile.us && (r.us_citizen || r.clearance)) out.push(r.us_citizen ? 'us_citizen' : 'clearance');
+  if (profile.spons && r.no_sponsor) out.push('no_sponsor');
+  if (profile.deg === 'bachelors' && (r.masters_req || r.phd_req)) out.push(r.phd_req ? 'phd_req' : 'masters_req');
+  if (profile.deg === 'masters' && r.phd_req) out.push('phd_req');
+  return out;
+}
+function tagsHtml(j){
+  if (!j.reqs) return '<span class="tag dim" title="Description not read yet. Run a crawl or `notifier enrich`.">unchecked</span>';
+  const bl = blockers(j), shown = Object.keys(TAGS).filter(k => j.reqs[k]);
+  const t = shown.map(k => `<span class="tag ${bl.includes(k) ? '' : 'warn'}" title="${esc(j.reqs[k])}">${TAGS[k][0]}</span>`).join('');
+  return t + (j.reqs._src === 'title' ? '<span class="tag dim" title="Only the title was checked">title only</span>' : '');
+}
+function initElig(){
+  $('p_us').checked = profile.us; $('p_spons').checked = profile.spons; $('p_deg').value = profile.deg; $('eligonly').checked = profile.only;
+  $('eligbtn').onclick = () => $('elig').style.display = $('elig').style.display === 'block' ? 'none' : 'block';
+  const upd = () => { profile.us = $('p_us').checked; profile.spons = $('p_spons').checked; profile.deg = $('p_deg').value; profile.only = $('eligonly').checked; saveProfile(); renderJobs(); };
+  ['p_us','p_spons','p_deg','eligonly'].forEach(id => $(id).addEventListener('change', upd));
+  document.addEventListener('mousedown', e => { if (!e.target.closest('#elig,#eligbtn')) $('elig').style.display = 'none'; });
+}
+
 /* ---------- jobs view ---------- */
 const REGION = {
   canada: /canada|\bON\b|\bBC\b|\bAB\b|\bQC\b|ontario|british columbia|alberta|quebec|toronto|vancouver|montr[eé]al|ottawa|waterloo|calgary|kitchener|mississauga|victoria|edmonton|halifax|winnipeg/i,
@@ -162,6 +221,7 @@ function renderJobs(){
   let rows = jobs.filter(j => {
     if (show === 'open' && (j.hidden || j.app)) return false;
     if (show === 'hidden' && !j.hidden) return false;
+    if (profile.only && blockers(j).length) return false;
     if (co && j.company !== co) return false;
     if (cutoff && new Date(j.posted) < cutoff) return false;
     if (rg && !REGION[rg].test(j.location + ' ' + j.title)) return false;
@@ -169,7 +229,9 @@ function renderJobs(){
     return true;
   });
   if ($('sort').value === 'company') rows.sort((a,b) => a.company.localeCompare(b.company) || a.title.localeCompare(b.title));
-  $('count').textContent = `${rows.length} of ${jobs.length} matching jobs`;
+  const wouldHide = jobs.filter(j => blockers(j).length).length, hiddenByElig = profile.only ? wouldHide : 0;
+  $('eligcount').textContent = wouldHide ? (profile.only ? `hiding ${wouldHide}` : `would hide ${wouldHide}`) : '';
+  $('count').textContent = `${rows.length} of ${jobs.length} matching jobs` + (hiddenByElig ? ` · ${hiddenByElig} hidden by eligibility` : '');
   const shown = rows.slice(0, 300);
   $('list').innerHTML = shown.length ? shown.map(j => {
     const fresh = Date.now() - new Date(j.posted) < 86400e3, st = j.app?.status;
@@ -177,6 +239,7 @@ function renderJobs(){
       <div class="body">
         <a class="title" href="${esc(j.url)}" target="_blank" rel="noopener">${esc(j.title)}</a>${fresh ? '<span class="badge">NEW</span>' : ''}${st ? chip(st) : ''}
         <div class="meta"><b>${esc(j.company)}</b>${j.location ? ' · ' + esc(j.location) : ''} · posted ${ago(j.posted)}</div>
+        <div>${tagsHtml(j)}</div>
       </div>
       <div class="acts">
         ${st ? `<button data-open="${j.app.id}">Open in tracker</button>` : `
@@ -194,6 +257,7 @@ $('list').onclick = async e => {
   if (b.dataset.hide !== undefined) await post('/api/hide', {id: b.dataset.id, hidden: b.dataset.hide === '1'});
   reloadAll();
 };
+initElig();
 ['q','when','company','sort','region','show'].forEach(id => $(id).addEventListener('input', renderJobs));
 
 /* ---------- tracker board ---------- */

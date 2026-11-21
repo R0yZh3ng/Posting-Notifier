@@ -60,19 +60,25 @@ def _get(url: str, **kw) -> requests.Response:
 
 
 def greenhouse(c: dict) -> list[Job]:
-    data = _get(f"https://boards-api.greenhouse.io/v1/boards/{c['slug']}/jobs?content=false").json()
+    data = _get(f"https://boards-api.greenhouse.io/v1/boards/{c['slug']}/jobs?content=true").json()
     return [
         Job(c["name"], j["title"], j["absolute_url"], (j.get("location") or {}).get("name", ""),
-            _iso(j.get("first_published") or j.get("updated_at")))
+            _iso(j.get("first_published") or j.get("updated_at")), j.get("content"))
         for j in data.get("jobs", [])
     ]
+
+
+def _lever_text(j: dict) -> str:
+    parts = [j.get("descriptionPlain") or "", *(f"{x.get('text', '')}\n{x.get('content', '')}" for x in j.get("lists") or []),
+             j.get("additionalPlain") or ""]
+    return "\n".join(parts)
 
 
 def lever(c: dict) -> list[Job]:
     data = _get(f"https://api.lever.co/v0/postings/{c['slug']}?mode=json").json()
     return [
         Job(c["name"], j["text"], j["hostedUrl"], (j.get("categories") or {}).get("location", ""),
-            _iso(j.get("createdAt")))
+            _iso(j.get("createdAt")), _lever_text(j))
         for j in data
     ]
 
@@ -82,7 +88,8 @@ def ashby(c: dict) -> list[Job]:
     jobs = []
     for j in data.get("jobs", []):
         url = j.get("jobUrl") or f"https://jobs.ashbyhq.com/{c['slug']}/{j['id']}"
-        jobs.append(Job(c["name"], j["title"], url, j.get("location", ""), _iso(j.get("publishedAt"))))
+        jobs.append(Job(c["name"], j["title"], url, j.get("location", ""), _iso(j.get("publishedAt")),
+                        j.get("descriptionPlain") or j.get("descriptionHtml")))
     return jobs
 
 
@@ -186,7 +193,8 @@ def amazon(c: dict) -> list[Job]:
                     posted = posted.isoformat(timespec="seconds")
                 except ValueError:
                     posted = None
-                jobs.append(Job(c["name"], j["title"], url, j.get("normalized_location", ""), posted))
+                text = f"{j.get('description', '')}\n{j.get('basic_qualifications', '')}"  # required quals only
+                jobs.append(Job(c["name"], j["title"], url, j.get("normalized_location", ""), posted, text))
             offset += 100
             if offset >= data.get("hits", 0):
                 break
@@ -225,6 +233,22 @@ def eightfold(c: dict) -> list[Job]:
                 jobs.append(Job(c["name"], j.get("name", ""), url, loc, posted))
             start += len(items)
     return jobs
+
+
+def workday_detail(url: str) -> str | None:
+    """Full job description for one Workday posting URL (as produced by `workday`)."""
+    m = re.match(r"https://([^.]+)\.(wd\d+)\.myworkdayjobs\.com/([^/]+)(/job/.+)", url)
+    if not m:
+        return None
+    tenant, wd, site, path = m.groups()
+    api = f"https://{tenant}.{wd}.myworkdayjobs.com/wday/cxs/{tenant}/{site}{path}"
+    for attempt in range(5):
+        r = requests.get(api, headers={"User-Agent": UA, "Accept": "application/json"}, timeout=TIMEOUT)
+        if r.status_code != 429:
+            break
+        time.sleep(4 * 2 ** attempt)
+    r.raise_for_status()
+    return (r.json().get("jobPostingInfo") or {}).get("jobDescription")
 
 
 def html(c: dict) -> list[Job]:

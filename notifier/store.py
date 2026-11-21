@@ -51,25 +51,30 @@ class Store:
         cols = {r[1] for r in self.conn.execute("PRAGMA table_info(jobs)")}
         if "posted_at" not in cols:
             self.conn.execute("ALTER TABLE jobs ADD COLUMN posted_at TEXT")
+        if "reqs" not in cols:  # JSON of eligibility tags found in the posting (see reqs.py)
+            self.conn.execute("ALTER TABLE jobs ADD COLUMN reqs TEXT")
         self._migrate_statuses()
 
     @staticmethod
     def _now() -> str:
         return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
-    def upsert(self, job: Job, matched: bool) -> bool:
+    def upsert(self, job: Job, matched: bool, reqs: str | None = None) -> bool:
         """Insert the job if unseen. Returns True when it is new."""
         now = self._now()
         cur = self.conn.execute(
-            "INSERT OR IGNORE INTO jobs (id, company, title, url, location, matched, first_seen, last_seen, posted_at)"
-            " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            (job.id, job.company, job.title, job.url, job.location, int(matched), now, now, job.posted_at),
+            "INSERT OR IGNORE INTO jobs (id, company, title, url, location, matched, first_seen, last_seen, posted_at, reqs)"
+            " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (job.id, job.company, job.title, job.url, job.location, int(matched), now, now, job.posted_at, reqs),
         )
         is_new = cur.rowcount == 1
         if not is_new:
+            # A full-description analysis replaces an earlier title-only one, never the reverse.
+            full = reqs is not None and '"_src": "desc"' in reqs
             self.conn.execute(
-                "UPDATE jobs SET last_seen = ?, matched = ?, posted_at = COALESCE(?, posted_at) WHERE id = ?",
-                (now, int(matched), job.posted_at, job.id),
+                "UPDATE jobs SET last_seen = ?, matched = ?, posted_at = COALESCE(?, posted_at), "
+                + ("reqs = ?" if full else "reqs = COALESCE(reqs, ?)") + " WHERE id = ?",
+                (now, int(matched), job.posted_at, reqs, job.id),
             )
         return is_new
 
@@ -189,6 +194,15 @@ class Store:
     def application_job_ids(self) -> dict[str, dict]:
         return {r["job_id"]: {"id": r["id"], "status": r["status"]}
                 for r in self.conn.execute("SELECT id, job_id, status FROM applications WHERE job_id IS NOT NULL")}
+
+    def needing_details(self) -> list[sqlite3.Row]:
+        """Matching jobs whose full description we haven't read yet."""
+        return self.conn.execute(
+            "SELECT id, company, title, url FROM jobs WHERE matched = 1 AND "
+            "(reqs IS NULL OR reqs LIKE '%\"_src\": \"title\"%') ORDER BY first_seen DESC").fetchall()
+
+    def set_reqs(self, job_id: str, reqs: str) -> None:
+        self.conn.execute("UPDATE jobs SET reqs = ? WHERE id = ?", (reqs, job_id))
 
     def count(self) -> int:
         return self.conn.execute("SELECT COUNT(*) FROM jobs").fetchone()[0]

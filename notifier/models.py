@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import hashlib
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
 @dataclass(frozen=True)
@@ -11,6 +11,7 @@ class Job:
     url: str
     location: str = ""
     posted_at: str | None = None  # ISO 8601 UTC when the board reports it, else None
+    description: str | None = field(default=None, compare=False, repr=False)  # job text, if the board gives it
 
     @property
     def id(self) -> str:

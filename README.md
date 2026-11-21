@@ -63,7 +63,14 @@ Three views:
   with notes, dates, follow-up reminders, contact and salary. Add applications for jobs the crawler didn't find, export CSV.
 - **Stats**: applications sent, response rate, pipeline, and follow-ups due.
 
-Everything is stored in `jobs.db`. **Crawl now** runs a crawl with a live log, and **auto-crawl**
+Everything is stored in `jobs.db`.
+
+**Eligibility filter.** The crawler reads each matching job's description and tags requirements: US citizenship /
+ITAR, security clearance, "no visa sponsorship", Master's or PhD required. Click **My eligibility** in the Jobs view to
+say what applies to you (US citizen or not, need sponsorship, degree level), then flip the **Eligible only** switch to hide
+jobs you can't take. The switch always starts off. Hover a tag to see the sentence it came from, since it's keyword-based
+and can be wrong. Jobs whose text couldn't be read are never hidden. Descriptions come with the crawl for
+Greenhouse, Lever, Ashby and Amazon; Workday ones are fetched after each crawl (`uv run notifier enrich` backfills all). **Crawl now** runs a crawl with a live log, and **auto-crawl**
 repeats it every `poll_interval_minutes` while the UI is open. Use `--port` or `--no-browser` as needed.
 
 ## Run (terminal)
